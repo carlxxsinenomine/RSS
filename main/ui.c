@@ -43,28 +43,31 @@ void about_scrn(void){
 		"/_/   \\_\\____/ \\___/ \\___/  |_|  "
 	};
 
-	for(int i=0;i<5;i++){
+	int about_row_size=sizeof(about)/sizeof(about[0]);
+	for(int i=0;i<about_row_size;i++){
 		int len=strlen(about[i]);
 		int tab=(window_width-len)/2;
 		mvwprintw(win,i+3,tab,"%s",about[i]);
 	}
 
-	mvwprintw(win,height-3,(window_width-9)/2,"[X] Exit");
-
 	const char *about_content[]={
 		"Authors:",
 		"",
-		"Margarata, Sean Eric A.",
+		"Margarata, Sean Eric",
 		"Muñoz, Carl Johannes",
 		"Penetrante, Ethaniel James",
 		"Santos, Gebhel Anselm",
 		"Zuñiga, Jay Mark"
 	};
 
-	for(int i=0;i<7;i++){
+	int content_row_size=sizeof(about_content)/sizeof(about_content[0]);
+	for(int i=0;i<content_row_size;i++){
 		int len=strlen(about_content[i]);
-		mvwprintw(win,((height-7)/2)+i,(window_width-len)/2,"%s",about_content[i]);
+		mvwprintw(win,((height-content_row_size)/2)+i,(window_width-len)/2,"%s",about_content[i]);
 	}
+	
+	char exit[]="[X] Exit";
+	mvwprintw(win,height-4,(window_width-strlen(exit))/2,"%s",exit);
 
 	int ch=0;
 	while(1){
@@ -87,8 +90,15 @@ void main_scrn(void){
 	int height, width;
 	getmaxyx(stdscr,height,width);
 
-	int window_width=width/2;
+	//Screen size limit
+	if(height<=37 || width<=187){
+		endwin();
+		printf("Screen too small\n");
+		printf("Please zoom out\n");
+		exit(1);
+	}
 
+	int window_width=width/2;
 
 	WINDOW *win=newwin(height,window_width,0,width/4);
 	if(!win){
@@ -111,8 +121,9 @@ void main_scrn(void){
 		"An interactive room scheduling system built using",
 		"Ncurses in seek of room management and availability directly from the terminal.",
 	};
-
-	for(int i=0;i<11;i++){
+	
+	int title_row_size=sizeof(title)/sizeof(title[0]);
+	for(int i=0;i<title_row_size;i++){
 		if(i==0){
 			wattrset(win,A_BOLD);
 		}
@@ -122,18 +133,19 @@ void main_scrn(void){
 
 		int len=strlen(title[i]);
 		int tab=(window_width-len)/2;
-		mvwprintw(win,i+7,tab,"%s",title[i]);
+		mvwprintw(win,i+5,tab,"%s",title[i]);
 	}
 	wattrset(win,A_NORMAL);
 
 	const char *menu[]={
-		"[1] User",
+		"[1] User ",
 		"[2] Admin",
 		"[3] About",
-		"[4] Exit"
+		"[4] Exit "
 	};
 
-	for(int i=0;i<4;i++){
+	int menu_row_size=sizeof(menu)/sizeof(menu[0]);
+	for(int i=0;i<menu_row_size;i++){
 		int len=strlen(menu[i]);
 		mvwprintw(win,(height/2)+i*2,(window_width-len)/2,"%s",menu[i]);
 	}
@@ -162,4 +174,11 @@ void main_scrn(void){
 	}while(ch!='4');
 
 	delwin(win);
+}
+
+int main(){
+	initscr();
+	main_scrn();
+	endwin();
+	return 0;
 }
