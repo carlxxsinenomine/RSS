@@ -1,13 +1,18 @@
-#include <ncurses.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+#include "ui.h"
 
-//Function initialization
-void main_scrn(void);
-void user_scrn(void);
-void admin_scrn(void);
-void about_scrn(void);
+//Checks window size limit
+void check_stdscr_size(int height,int width){
+	int temp_h=height,temp_w=width;
+	getmaxyx(stdscr,height,width);
+	if(height<=37 || width<=187 || height!=temp_h || width!=temp_w){
+		endwin();
+		printf("Program Crashed.\n");
+		printf("Screen is maybe:\n   1. Too small\n   2. Changed\n");
+		printf("Note: Do not resize window while program is running. Zoom out or resize terminal window beforehand for program to run properly.\n");
+		exit(1);
+	}
+	wrefresh(stdscr);
+}
 
 //Generate user screen
 void user_scrn(void){
@@ -25,7 +30,6 @@ void about_scrn(void){
 	getmaxyx(stdscr,height,width);
 
 	int window_width=width/2;
-
 
 	WINDOW *win=newwin(height,window_width,0,width/4);
 	if(!win){
@@ -70,15 +74,15 @@ void about_scrn(void){
 	mvwprintw(win,height-4,(window_width-strlen(exit))/2,"%s",exit);
 
 	int ch=0;
+
 	while(1){
 		ch=wgetch(win);
 		if(toupper(ch)==('X')){
 			break;
 		}
+		check_stdscr_size(height,width);
 	}
 	
-	wrefresh(win);
-
 	delwin(win);
 }
 
@@ -89,14 +93,8 @@ void main_scrn(void){
 
 	int height, width;
 	getmaxyx(stdscr,height,width);
-
-	//Screen size limit
-	if(height<=37 || width<=187){
-		endwin();
-		printf("Screen too small\n");
-		printf("Please zoom out\n");
-		exit(1);
-	}
+	
+	check_stdscr_size(height,width);
 
 	int window_width=width/2;
 
@@ -138,10 +136,10 @@ void main_scrn(void){
 	wattrset(win,A_NORMAL);
 
 	const char *menu[]={
-		"[1] User ",
-		"[2] Admin",
-		"[3] About",
-		"[4] Exit "
+		"[1] User   ",
+		"[2] Admin  ",
+		"[3] About  ",
+		"[4] Exit   "
 	};
 
 	int menu_row_size=sizeof(menu)/sizeof(menu[0]);
@@ -149,8 +147,6 @@ void main_scrn(void){
 		int len=strlen(menu[i]);
 		mvwprintw(win,(height/2)+i*2,(window_width-len)/2,"%s",menu[i]);
 	}
-
-	wrefresh(win);
 
 	int ch=0;
 
@@ -171,14 +167,8 @@ void main_scrn(void){
 		}
 		touchwin(win);
 		wrefresh(win);
+		check_stdscr_size(height,width);
 	}while(ch!='4');
 
 	delwin(win);
-}
-
-int main(){
-	initscr();
-	main_scrn();
-	endwin();
-	return 0;
 }

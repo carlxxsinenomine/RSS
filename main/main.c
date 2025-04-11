@@ -1,4 +1,8 @@
-#include <stdio.h>
+#include "ui.h"
+
 int main(){
-  return 0;
+	initscr();
+	main_scrn();
+	endwin();
+	return 0;
 }
