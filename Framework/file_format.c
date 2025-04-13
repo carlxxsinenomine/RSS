@@ -58,13 +58,6 @@ void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const
 }
 
 struct Rooms* createRoom(int roomNumber) {
-    struct Rooms* current = head;
-    while (current != NULL) {
-        if (current->roomNumber == roomNumber) { // if val of current->roomNumber is equal to current edi same room
-            return current; // return the current room
-        }
-        current = current->next; // Iterate thruogh the next List
-    }
 
     struct Rooms* newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
     if (!newRoom) { // if newRoom is NULL
@@ -90,8 +83,43 @@ struct Rooms* createRoom(int roomNumber) {
     }
     return newRoom;
 }
+// Pumili ng room na imomodify e.g. print, or baguhin yung values
+struct Rooms* selectRoom(int roomNumber) {
+    struct Rooms* current = head;
+    while (current != NULL) {
+        if (current->roomNumber == roomNumber) { // if val of current->roomNumber is equal to current edi same room
+            return current; // return the current room na imomodify
+        }
+
+        if (current->next == NULL) {
+            printf("Invalid Room");
+            return NULL;
+        }
+        current = current->next; // Iterate thruogh the next List
+    }
+    return NULL;
+}
+
+// iprint ung list ng selected na room
+void printSelectedRoom(struct Rooms* room) {
+    int currentRoomNumber = room->roomNumber;
+    printf("Room Number: %d\n", currentRoomNumber);
+    // printf("Room Sched Count: %d", room->scheduleCount);
+    if (head == NULL) {
+        printf("No rooms in the list.\n");
+        return;
+    }
+
+    for (int i = 0; i < room->scheduleCount; i++) {
+        printf("  %s, %s at %s\n",
+               room->schedules[i].day,
+               room->schedules[i].courseCode,
+               room->schedules[i].time);
+    }
+}
 
 int main() {
+
     FILE *fptr;           
 
     int bNumber, maxRooms;
@@ -112,29 +140,43 @@ int main() {
     sscanf(line, "Building No: %d", &bNumber);
     fgets(line, sizeof(line), fptr);
     sscanf(line, "Max Rooms: %d", &maxRooms);
-
+    struct Rooms *room = NULL;
     while(fgets(line, sizeof(line), fptr)) {
         // If Room: is present on the string
         if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
             sscanf(line, "Room: %d", &currentRoom);
+            room = createRoom(currentRoom);
             continue;
         }
         
-        if (strlen(line) <= 1) continue; // If empty line skip.
+        if (strlen(line) <= 1) continue;// If empty line skip.
 
         int dayIndex;
         char courseCode[21], time[21];
 
         if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
         {
-            struct Rooms *room = createRoom(currentRoom);
             if (room) {
                 addSchedule(room, dayIndex, courseCode, time);
             }
         }
 
     } 
-    fclose(fptr);
+
+
     printRooms();
+    int roomOfChoice;
+    printf("Enter Room of choice: ");
+    scanf("%d", &roomOfChoice);
+    struct Rooms* selectedRoom = selectRoom(roomOfChoice);
+    printSelectedRoom(selectedRoom);
+
+
+
+
+
+
+    fclose(fptr);
+
     return 0;
 }
