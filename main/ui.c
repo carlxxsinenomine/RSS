@@ -1,17 +1,36 @@
 #include "ui.h"
 
 //Checks window size limit
-void check_stdscr_size(int height,int width){
+void check_winsize(WINDOW *win,int height,int width){
 	int temp_h=height,temp_w=width;
-	getmaxyx(stdscr,height,width);
-	if(height<=37 || width<=187 || height!=temp_h || width!=temp_w){
+	getmaxyx(win,height,width);
+	if(height<38 || width<105 || height!=temp_h || width!=temp_w){
 		endwin();
 		printf("Program Crashed.\n");
 		printf("Screen is maybe:\n   1. Too small\n   2. Changed\n");
 		printf("Note: Do not resize window while program is running. Zoom out or resize terminal window beforehand for program to run properly.\n");
 		exit(1);
 	}
-	wrefresh(stdscr);
+}
+
+void auth(WINDOW *win,char pass[]){
+	int height,width;
+	getmaxyx(win,height,width);
+
+	WINDOW *sub=subwin(win,3,(width-4),height/2,4);
+
+	box(sub,'*','*');
+}
+
+void status_bar(WINDOW *win,char *status){
+	int height,width;
+	getmaxyx(win,height,width);
+
+	int len=strlen(status);
+
+	wattrset(win,A_REVERSE);
+	mvwprintw(win,height-2,(width-len)-2,"%s",status);
+	wattrset(win,A_NORMAL);
 }
 
 //Generate user screen
@@ -26,7 +45,7 @@ void admin_scrn(void){
 
 //Generate about screen
 void about_scrn(void){
-	int height, width;
+	int height,width;
 	getmaxyx(stdscr,height,width);
 
 	int window_width=width/2;
@@ -73,6 +92,8 @@ void about_scrn(void){
 	char exit[]="[X] Exit";
 	mvwprintw(win,height-4,(window_width-strlen(exit))/2,"%s",exit);
 
+	status_bar(win,"Menu/About");
+
 	int ch=0;
 
 	while(1){
@@ -80,7 +101,7 @@ void about_scrn(void){
 		if(toupper(ch)==('X')){
 			break;
 		}
-		check_stdscr_size(height,width);
+		check_winsize(win,height,window_width);
 	}
 	
 	delwin(win);
@@ -91,14 +112,15 @@ void main_scrn(void){
 	noecho();
 	curs_set(0);
 
-	int height, width;
+	int height,width;
 	getmaxyx(stdscr,height,width);
 	
-	check_stdscr_size(height,width);
-
 	int window_width=width/2;
 
 	WINDOW *win=newwin(height,window_width,0,width/4);
+	
+	check_winsize(win,height,window_width);
+
 	if(!win){
 		printf("Failed to load screen\n");
 		exit(1);
@@ -119,7 +141,7 @@ void main_scrn(void){
 		"An interactive room scheduling system built using",
 		"Ncurses in seek of room management and availability directly from the terminal.",
 	};
-	
+
 	int title_row_size=sizeof(title)/sizeof(title[0]);
 	for(int i=0;i<title_row_size;i++){
 		if(i==0){
@@ -148,6 +170,8 @@ void main_scrn(void){
 		mvwprintw(win,(height/2)+i*2,(window_width-len)/2,"%s",menu[i]);
 	}
 
+	status_bar(win,"Menu");
+
 	int ch=0;
 
 	do{
@@ -167,7 +191,7 @@ void main_scrn(void){
 		}
 		touchwin(win);
 		wrefresh(win);
-		check_stdscr_size(height,width);
+		check_winsize(win,height,window_width);
 	}while(ch!='4');
 
 	delwin(win);
