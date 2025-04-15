@@ -14,12 +14,35 @@ void check_winsize(WINDOW *win,int height,int width){
 }
 
 void auth(WINDOW *win,char pass[]){
+	curs_set(1);
+	noecho();
+
 	int height,width;
 	getmaxyx(win,height,width);
 
-	WINDOW *sub=subwin(win,3,(width-4),height/2,4);
+	WINDOW *sub=subwin(win,3,width-2,height/2,(width/2)+1);
+	if(!sub){
+		printf("Failed to load screen\n");
+		exit(1);
+	}
 
-	box(sub,'*','*');
+	keypad(sub,TRUE);
+	box(sub,0,0);
+
+	char input_pass[19]={0};
+	int i=0;
+
+	mvwprintw(sub,1,1,"Enter User password: ");
+
+	int ch;
+
+	while((ch=wgetch(sub))!='\n' && i<18){
+		if(ch==KEY_BACKSPACE){
+			
+		}
+	}
+
+	delwin(sub);
 }
 
 void status_bar(WINDOW *win,char *status){
@@ -35,7 +58,37 @@ void status_bar(WINDOW *win,char *status){
 
 //Generate user screen
 void user_scrn(void){
+	int height,width;
+	getmaxyx(stdscr,height,width);
 
+	int window_width=width/2;
+
+	WINDOW *win=newwin(height,window_width,0,width/4);
+	if(!win){
+		printf("Failed to load screen\n");
+		exit(1);
+	}
+
+	wborder(win,'|','|','-','-','+','+','+','+');
+
+	auth(win,"123");
+
+	char exit[]="[X] Exit";
+	mvwprintw(win,height-4,(window_width-strlen(exit))/2,"%s",exit);
+
+
+	status_bar(win,"User");
+
+	int ch=0;
+	
+	while(1){
+		ch=wgetch(win);
+		if(toupper(ch)==('X')){
+			break;
+		}
+		check_winsize(win,height,window_width);
+	}
+	delwin(win);
 }
 
 //Generate admin screen
@@ -178,6 +231,7 @@ void main_scrn(void){
 		ch=wgetch(win);
 		switch(ch){
 			case '1':
+				user_scrn();
 				break;
 			case '2':
 				break;
