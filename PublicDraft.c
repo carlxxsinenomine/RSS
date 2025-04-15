@@ -33,13 +33,13 @@ const char* DAYS[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Fri
 
 void printRooms();
 void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
-struct Rooms* createRoom(int roomNumber);
-struct Rooms* selectRoom(int roomNumber);
-void printSelectedRoom(struct Rooms* room);
-void printRoomNumber();
+struct Rooms* createRoom(struct Building *building, int roomNumber);
+struct Rooms* selectRoom(struct Building *building, int roomNumber);
+void printSelectedRoom(struct Building *building, struct Rooms* room);
+void printRoomNumber(struct Building *building);
 struct Building *createBuilding(int bldgNum);
 struct Building *selectBuilding(int bldgNum); 
-void printfSelectedBuilding(int choice);
+void printfSelectedBuilding(struct Building *building);
 void printBuildingNumber();
 
 int main() {
@@ -87,7 +87,7 @@ int main() {
             // If Room: is present on the string
             if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
                 sscanf(line, "Room: %d", &currentRoom);
-                room = createRoom(currentRoom);
+                room = createRoom(building, currentRoom);
                 continue;
             }
             int dayIndex;
@@ -106,18 +106,17 @@ int main() {
     printBuildingNumber();
     printf("Enter building number to view available rooms: ");
     scanf("%d", &buildingChoice);
-
     struct Building *selectedBuilding = selectBuilding(buildingChoice);
+    printfSelectedBuilding(selectedBuilding);
 
-    printf("Rooms in building 4: \n"); //will put nalang another function para sa %d na maga specify if b4 or b2
-    printRoomNumber();
+    printRoomNumber(selectedBuilding);
     
     int roomOfChoice;
     printf("\nEnter room number to view schedule: ");
     scanf("%d", &roomOfChoice);
 
-    struct Rooms* selectedRoom = selectRoom(roomOfChoice);
-    printSelectedRoom(selectedRoom);
+    struct Rooms* selectedRoom = selectRoom(selectedBuilding, roomOfChoice);
+    printSelectedRoom(selectedBuilding, selectedRoom);
 
     fclose(listOfBuildings);
 
@@ -147,7 +146,6 @@ struct Building *createBuilding(int bldgNum){
     return newBuilding;
 }
 
-
 struct Building *selectBuilding(int bldgNum) {
     struct Building* current = bldgHead;
     while (current != NULL) {
@@ -156,7 +154,7 @@ struct Building *selectBuilding(int bldgNum) {
         }
 
         if (current->next == NULL) {
-            printf("Invalid Room");
+            printf("Invalid building number.");
             return NULL;
         }
         current = current->next; // Iterate thruogh the next List
@@ -164,8 +162,14 @@ struct Building *selectBuilding(int bldgNum) {
     return NULL;
 }
 
-void printfSelectedBuilding(int choice){
-//paps sa sunod ko nalang ni asikasuhin
+void printfSelectedBuilding(struct Building *building){
+    int currentBuildingNumber = building->buildingNumber;
+    printf("\nRooms in building %d\n", currentBuildingNumber);
+
+    if(bldgHead == NULL){
+        printf("No available buildings");
+        return;
+    }
 }
 
 void printBuildingNumber() {
@@ -178,8 +182,8 @@ void printBuildingNumber() {
     }
 }
 
-void printRoomNumber(){
-    struct Rooms *current = head; 
+void printRoomNumber(struct Building *building){
+    struct Rooms *current = building->head; 
 
     while(current != NULL) {
         printf("Room %d\n", current->roomNumber);
@@ -224,7 +228,7 @@ void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const
     strcpy(sched->time, time);
 }
 
-struct Rooms* createRoom(int roomNumber) {
+struct Rooms* createRoom(struct Building *_building, int roomNumber) {
 
     struct Rooms* newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
     if (!newRoom) { // if newRoom is NULL
@@ -240,18 +244,18 @@ struct Rooms* createRoom(int roomNumber) {
     // strcpy(newRoom->schedule[roomNumber-1][1], courseCode);
     // strcpy(newRoom->schedule[roomNumber-1][2], time);
 
-    if (head == NULL) {
-        head = last = newRoom; // set last equal to newRoom and head equal to last
+    if (_building->head == NULL) {
+        _building->head = _building->last = newRoom; // set last equal to newRoom and head equal to last
     } else {
-        last->next = newRoom; // points to newRoom
+        _building->last->next = newRoom; // points to newRoom
         newRoom->prev = last;
-        last = newRoom;
+        _building->last = newRoom;
     }
     return newRoom;
 }
 // Pumili ng room na imomodify e.g. print, or baguhin yung values
-struct Rooms* selectRoom(int roomNumber) {
-    struct Rooms* current = head;
+struct Rooms* selectRoom(struct Building *building, int roomNumber) {
+    struct Rooms* current = building->head;
     while (current != NULL) {
         if (current->roomNumber == roomNumber) { // if val of current->roomNumber is equal to current edi same room
             return current; // return the current room na imomodify
@@ -266,11 +270,11 @@ struct Rooms* selectRoom(int roomNumber) {
     return NULL;
 }
 // iprint ung list ng selected na room
-void printSelectedRoom(struct Rooms* room) {
+void printSelectedRoom(struct Building *building, struct Rooms* room) {
     int currentRoomNumber = room->roomNumber;
     printf("Room Number: %d\n", currentRoomNumber);
     // printf("Room Sched Count: %d", room->scheduleCount);
-    if (head == NULL) {
+    if (building->head == NULL) {
         printf("No rooms in the list.\n");
         return;
     }
