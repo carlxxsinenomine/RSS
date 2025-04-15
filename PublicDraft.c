@@ -21,8 +21,11 @@ struct Rooms {
 
 struct Building {
     int buildingNumber;
+    // Ganto ba ung tamang format ng Doubly linkedlist inside another Doubly linkedlist? dko alam research monalng baka kasi
+    // pedeng nasa labas nalng tong dalawa dko lang sure
     struct Rooms *head;
     struct Rooms *last;
+
     struct Building *next;
     struct Building *prev;
 } *bldgHead = NULL, *bldgLast = NULL;
@@ -37,7 +40,7 @@ void printSelectedRoom(struct Rooms* room);
 void printRoomNumber();
 
 int main() {
-
+    //TODO 1: Change this to  FILE *listOfBuildings, roomFileName; lang
     FILE *fptr, *fptr2, *bfptr;           
 
     int bNumber, maxRooms;
@@ -47,6 +50,10 @@ int main() {
     head = NULL;
     last = NULL;
     
+    /**
+    @note: alisin mona tong dalawa isang file lang ireread nya which is yung listOfBuildings.txt
+    */
+    //TODO 2: Read only from the listOfBuildings.txt
     fptr = fopen("bld4.txt", "rt");
     fptr2 = fopen("bld2.txt", "rt");
 
@@ -54,6 +61,24 @@ int main() {
         perror("Error opening file");
         return 1;
     }
+
+    // TODO 3: Gawa kang another while loop na nagreread line by line from the listOfBuildings.txt
+    // Same ng while loop below
+
+
+    // TODO 4: After taking the name of the bld file from the listOfBuildings.txt create another fopen() and read from that file name
+    /**
+    @example: the contents of the listOfBuildings.txt ay ganto:
+            Building2.txt
+            Building4.txt
+    @perform: after reading the first line (e.g. Building2.txt) gawa kang yan gagamitin mong pangread sa file:
+            fopen(bLine, "rt"); // suppose na ung bLine is ung inistoran ng string "Building2.txt" na naread from listOfBuildings.txt
+    */
+
+    /**
+    @note: after that the following code snippets below i think konti nalang babaguhin or dadagdagan, btw ung prev codes for reading from the Building
+    file is nasa loob ng while loop ng pagread nung sa listOfBuildings.txt
+    */
     // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
     // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
     fgets(line, sizeof(line), fptr);
@@ -61,8 +86,13 @@ int main() {
     fgets(line, sizeof(line), fptr);
     sscanf(line, "Max Rooms: %d", &maxRooms);
     struct Rooms *room = NULL;
-
+    
     while(fgets(line, sizeof(line), fptr)) {
+        /**
+        @note: Gayahin mo tong logic dito para malaman kung new  Building file na ung naka store sa bLine variable
+            if new file  name na point to the next struct ng building structure
+        */
+        
         // If Room: is present on the string
         if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
             sscanf(line, "Room: %d", &currentRoom);
