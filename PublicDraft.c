@@ -21,8 +21,7 @@ struct Rooms {
 
 struct Building {
     int buildingNumber;
-    // Ganto ba ung tamang format ng Doubly linkedlist inside another Doubly linkedlist? dko alam research monalng baka kasi
-    // pedeng nasa labas nalng tong dalawa dko lang sure
+
     struct Rooms *head;
     struct Rooms *last;
 
@@ -41,10 +40,10 @@ void printRoomNumber();
 
 int main() {
     //TODO 1: Change this to  FILE *listOfBuildings, roomFileName; lang
-    FILE *fptr, *fptr2, *bfptr;           
+    FILE *fptr, *listOfBuildings;           
 
     int bNumber, maxRooms;
-    char line[100];
+    char line[100], bLine[100];
     int currentRoom = 0; // Room 1, or index zero
 
     head = NULL;
@@ -54,17 +53,60 @@ int main() {
     @note: alisin mona tong dalawa isang file lang ireread nya which is yung listOfBuildings.txt
     */
     //TODO 2: Read only from the listOfBuildings.txt
-    fptr = fopen("bld4.txt", "rt");
-    fptr2 = fopen("bld2.txt", "rt");
+    listOfBuildings = fopen("listOfBuildings.txt", "rt");
 
-    if (fptr == NULL) {
+
+    if (listOfBuildings == NULL) {
         perror("Error opening file");
         return 1;
     }
 
     // TODO 3: Gawa kang another while loop na nagreread line by line from the listOfBuildings.txt
     // Same ng while loop below
+    while (fgets(bLine, sizeof(bLine), listOfBuildings)) {
+        sscanf(bLine, "[^\n]", line);
 
+        fptr = fopen(bLine, "rt");
+
+        if(fptr == NULL){
+            perror("Error handling file");
+            continue;
+        }
+
+        // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
+        // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
+        fgets(line, sizeof(line), fptr);
+        sscanf(line, "Building No: %d", &bNumber);
+        fgets(line, sizeof(line), fptr);
+        sscanf(line, "Max Rooms: %d", &maxRooms);
+
+        struct Rooms *room = NULL;
+
+        while(fgets(line, sizeof(line), fptr)) {
+            /**
+            @note: Gayahin mo tong logic dito para malaman kung new  Building file na ung naka store sa bLine variable
+            if new file  name na point to the next struct ng building structure
+            */
+           if (strlen(line) <= 1) continue;// If empty line skip.
+        
+            // If Room: is present on the string
+            if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
+                sscanf(line, "Room: %d", &currentRoom);
+                room = createRoom(currentRoom);
+                continue;
+            }
+            int dayIndex;
+            char courseCode[21], time[21];
+
+            if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) {// == 3; if 3 values are read
+                if (room) {
+                    addSchedule(room, dayIndex, courseCode, time);
+                }
+            }
+        }
+        fclose(fptr);
+    } 
+    
 
     // TODO 4: After taking the name of the bld file from the listOfBuildings.txt create another fopen() and read from that file name
     /**
@@ -79,39 +121,7 @@ int main() {
     @note: after that the following code snippets below i think konti nalang babaguhin or dadagdagan, btw ung prev codes for reading from the Building
     file is nasa loob ng while loop ng pagread nung sa listOfBuildings.txt
     */
-    // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
-    // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
-    fgets(line, sizeof(line), fptr);
-    sscanf(line, "Building No: %d", &bNumber);
-    fgets(line, sizeof(line), fptr);
-    sscanf(line, "Max Rooms: %d", &maxRooms);
-    struct Rooms *room = NULL;
-    
-    while(fgets(line, sizeof(line), fptr)) {
-        /**
-        @note: Gayahin mo tong logic dito para malaman kung new  Building file na ung naka store sa bLine variable
-            if new file  name na point to the next struct ng building structure
-        */
-        
-        // If Room: is present on the string
-        if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
-            sscanf(line, "Room: %d", &currentRoom);
-            room = createRoom(currentRoom);
-            continue;
-        }
-        
-        if (strlen(line) <= 1) continue;// If empty line skip.
-
-        int dayIndex;
-        char courseCode[21], time[21];
-
-        if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) {// == 3; if 3 values are read
-            if (room) {
-                addSchedule(room, dayIndex, courseCode, time);
-            }
-        }
-    } 
-    
+   
     printf("Rooms in building 4: \n"); //will put nalang another function para sa %d na maga specify if b4 or b2
     printRoomNumber();
     int roomOfChoice;
@@ -120,7 +130,7 @@ int main() {
     struct Rooms* selectedRoom = selectRoom(roomOfChoice);
     printSelectedRoom(selectedRoom);
 
-    fclose(fptr);
+    fclose(listOfBuildings);
 
     return 0;
 }
