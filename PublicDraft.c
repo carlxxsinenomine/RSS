@@ -37,6 +37,10 @@ struct Rooms* createRoom(int roomNumber);
 struct Rooms* selectRoom(int roomNumber);
 void printSelectedRoom(struct Rooms* room);
 void printRoomNumber();
+struct Building *createBuilding(int bldgNum);
+struct Building *selectBuilding(int bldgNum); 
+void printfSelectedBuilding(int choice);
+void printBuildingNumber();
 
 int main() {
     //TODO 1: Change this to  FILE *listOfBuildings, roomFileName; lang
@@ -49,23 +53,16 @@ int main() {
     head = NULL;
     last = NULL;
     
-    /**
-    @note: alisin mona tong dalawa isang file lang ireread nya which is yung listOfBuildings.txt
-    */
-    //TODO 2: Read only from the listOfBuildings.txt
     listOfBuildings = fopen("listOfBuildings.txt", "rt");
-
 
     if (listOfBuildings == NULL) {
         perror("Error opening file");
         return 1;
     }
 
-    // TODO 3: Gawa kang another while loop na nagreread line by line from the listOfBuildings.txt
-    // Same ng while loop below
-    while (fgets(bLine, sizeof(bLine), listOfBuildings)) {
-        sscanf(bLine, "[^\n]", line);
-
+    // while loop na nagreread line by line from the listOfBuildings.txt
+    while (fscanf(listOfBuildings, "%s", bLine) != EOF) {
+       
         fptr = fopen(bLine, "rt");
 
         if(fptr == NULL){
@@ -80,13 +77,11 @@ int main() {
         fgets(line, sizeof(line), fptr);
         sscanf(line, "Max Rooms: %d", &maxRooms);
 
+        struct Building *building = createBuilding(bNumber);
         struct Rooms *room = NULL;
 
         while(fgets(line, sizeof(line), fptr)) {
-            /**
-            @note: Gayahin mo tong logic dito para malaman kung new  Building file na ung naka store sa bLine variable
-            if new file  name na point to the next struct ng building structure
-            */
+           
            if (strlen(line) <= 1) continue;// If empty line skip.
         
             // If Room: is present on the string
@@ -106,27 +101,21 @@ int main() {
         }
         fclose(fptr);
     } 
-    
-
-    // TODO 4: After taking the name of the bld file from the listOfBuildings.txt create another fopen() and read from that file name
-    /**
-    @example: the contents of the listOfBuildings.txt ay ganto:
-            Building2.txt
-            Building4.txt
-    @perform: after reading the first line (e.g. Building2.txt) gawa kang yan gagamitin mong pangread sa file:
-            fopen(bLine, "rt"); // suppose na ung bLine is ung inistoran ng string "Building2.txt" na naread from listOfBuildings.txt
-    */
-
-    /**
-    @note: after that the following code snippets below i think konti nalang babaguhin or dadagdagan, btw ung prev codes for reading from the Building
-    file is nasa loob ng while loop ng pagread nung sa listOfBuildings.txt
-    */
    
+    int buildingChoice;
+    printBuildingNumber();
+    printf("Enter building number to view available rooms: ");
+    scanf("%d", &buildingChoice);
+
+    struct Building *selectedBuilding = selectBuilding(buildingChoice);
+
     printf("Rooms in building 4: \n"); //will put nalang another function para sa %d na maga specify if b4 or b2
     printRoomNumber();
+    
     int roomOfChoice;
     printf("\nEnter room number to view schedule: ");
     scanf("%d", &roomOfChoice);
+
     struct Rooms* selectedRoom = selectRoom(roomOfChoice);
     printSelectedRoom(selectedRoom);
 
@@ -135,10 +124,63 @@ int main() {
     return 0;
 }
 
-void printRoomNumber(){
-    int i;
+struct Building *createBuilding(int bldgNum){
+    struct Building *newBuilding = (struct Building *) malloc(sizeof(struct Building));
+    
+    if(newBuilding == NULL){
+        printf("Memory allocation failed!\n");
+    }
 
+    newBuilding->buildingNumber = bldgNum;
+    newBuilding->head = NULL;
+    newBuilding->last = NULL;
+    newBuilding->next = NULL;
+    newBuilding->prev = NULL;
+
+    if (bldgHead == NULL) {
+        bldgHead = bldgLast = newBuilding; // set bldgLast equal to newBuilding and bldgHead equal to bldgLast
+    } else {
+        bldgLast->next = newBuilding; // points to newBuilding
+        newBuilding->prev = bldgLast;
+        bldgLast = newBuilding;
+    }
+    return newBuilding;
+}
+
+
+struct Building *selectBuilding(int bldgNum) {
+    struct Building* current = bldgHead;
+    while (current != NULL) {
+        if (current->buildingNumber == bldgNum) { // if val of current->buildingNumber is equal to current edi same room
+            return current; // return the current room na imomodify
+        }
+
+        if (current->next == NULL) {
+            printf("Invalid Room");
+            return NULL;
+        }
+        current = current->next; // Iterate thruogh the next List
+    }
+    return NULL;
+}
+
+void printfSelectedBuilding(int choice){
+//paps sa sunod ko nalang ni asikasuhin
+}
+
+void printBuildingNumber() {
+    struct Building *current = bldgHead;
+    printf("Available buildings: \n");
+
+    while(current != NULL) {
+        printf("Building %d\n", current->buildingNumber);
+        current = current->next;
+    }
+}
+
+void printRoomNumber(){
     struct Rooms *current = head; 
+
     while(current != NULL) {
         printf("Room %d\n", current->roomNumber);
         current = current->next;
@@ -197,7 +239,6 @@ struct Rooms* createRoom(int roomNumber) {
     // strcpy(newRoom->schedule[roomNumber-1][0], day);
     // strcpy(newRoom->schedule[roomNumber-1][1], courseCode);
     // strcpy(newRoom->schedule[roomNumber-1][2], time);
-
 
     if (head == NULL) {
         head = last = newRoom; // set last equal to newRoom and head equal to last
