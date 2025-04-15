@@ -146,6 +146,7 @@ struct Building *createBuilding(int bldgNum){
     return newBuilding;
 }
 
+//same functionality as selectRoom function
 struct Building *selectBuilding(int bldgNum) {
     struct Building* current = bldgHead;
     while (current != NULL) {
@@ -162,6 +163,8 @@ struct Building *selectBuilding(int bldgNum) {
     return NULL;
 }
 
+//incharge to sa pag write ng building number na pinili ni user
+//gumagamit to ng linked list para makuha si current bldg number
 void printfSelectedBuilding(struct Building *building){
     int currentBuildingNumber = building->buildingNumber;
     printf("\nRooms in building %d\n", currentBuildingNumber);
@@ -172,6 +175,8 @@ void printfSelectedBuilding(struct Building *building){
     }
 }
 
+//nag pprint ng list of buildings sa terminal
+//prints only building numbers 
 void printBuildingNumber() {
     struct Building *current = bldgHead;
     printf("Available buildings: \n");
@@ -228,6 +233,9 @@ void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const
     strcpy(sched->time, time);
 }
 
+/* nag add ako ng building parameter para ma read si specific building file
+after mag input ni user
+*/
 struct Rooms* createRoom(struct Building *_building, int roomNumber) {
 
     struct Rooms* newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
