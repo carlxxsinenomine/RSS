@@ -4,14 +4,14 @@
 
 #define MAXCOL 3
 #define MAX_SCHEDULES 20
-#define MAX_DAYS 5
+#define MAX_DAYS 6
+
 
 struct Schedule {
     char day[10];
     char courseCode[20];
     char time[20];
 };
-
 struct Rooms {
     int roomNumber;
     int scheduleCount;
@@ -19,6 +19,7 @@ struct Rooms {
     struct Rooms *prev;
     struct Rooms *next;
 };
+
 
 struct Buildings {
     int buildingNumber;
@@ -28,8 +29,12 @@ struct Buildings {
     struct Buildings *next;
 } *bHead=NULL, *bLast=NULL;
 
-const char* DAYS[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
-
+const char* DAYS[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+/**
+ * @date_added: 4/16
+ * @return_type: void
+ * @description: Prints the list of Buildingss
+ */
 void printBuildings() {
     if (bHead == NULL) {
         printf("No rooms in the list.\n");
@@ -43,7 +48,12 @@ void printBuildings() {
         current = current->next;
     }
 }
-
+/**
+ * @date_added: 4/15
+ * @return_type: void
+ * @parameter: Accepts an Building type Structure
+ * @description: Prints the list of Rooms
+ */
 void printRooms(struct Buildings *building) {
     if (building->head == NULL) {
         printf("No rooms in the list.\n");
@@ -54,16 +64,21 @@ void printRooms(struct Buildings *building) {
     printf("Room List:\n");
     while (current != NULL) {
         printf("Room %d:\n", current->roomNumber);
-        for (int i = 0; i < current->scheduleCount; i++) {
-            printf("  %s, %s at %s\n", 
-                   current->schedules[i].day,
-                   current->schedules[i].courseCode,
-                   current->schedules[i].time);
-        }
+        // for (int i = 0; i < current->scheduleCount; i++) {
+        //     printf("  %s, %s at %s\n", 
+        //            current->schedules[i].day,
+        //            current->schedules[i].courseCode,
+        //            current->schedules[i].time);
+        // }
         current = current->next;
     }
 }
-
+/**
+ * @date_added: 4/15
+ * @return_type: void
+ * @parameter: Accepts a Room type Structure, Int, Char 
+ * @description: Adds data to an Array of Schedule Structure of the cuurent Room object passed as an argument
+ */
 void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time) {
     if (room->scheduleCount >= MAX_SCHEDULES) {
         printf("Cannot add more schedules to room %d\n", room->roomNumber);
@@ -80,7 +95,12 @@ void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const
     strcpy(sched->courseCode, courseCode);
     strcpy(sched->time, time);
 }
-
+/**
+ * @date_added: 4/16
+ * @return_type: Buildings Structure
+ * @parameter: Accepts an Int
+ * @description: Creates a linked list of Building
+ */
 struct Buildings* createBuilding(int buildingNumber) {
     struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
     if (!newBuilding) { // if new building is NULL
@@ -104,7 +124,12 @@ struct Buildings* createBuilding(int buildingNumber) {
     return newBuilding;
     
 }
-
+/**
+ * @date_added: 4/15
+ * @return_type: RoomsStructure
+ * @parameter: Accepts an INt, Buildings Structure
+ * @description: Creates a linked list of Rooms inside a structure of Building
+ */
 struct Rooms* createRoom(int roomNumber, struct Buildings *currentBuilding) {
 
     struct Rooms* newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
@@ -128,7 +153,13 @@ struct Rooms* createRoom(int roomNumber, struct Buildings *currentBuilding) {
     }
     return currentBuilding->last;
 }
-// Pumili ng room na imomodify e.g. print, or baguhin yung values
+
+/**
+ * @date_added: 4/15
+ * @return_type: Rooms Structure
+ * @parameter: Accepts an INt, Buildings Structure
+ * @description: returns a Rooms Structure selected by the user for purposes such as Printing, Updating, Deleting of Room
+ */
 struct Rooms* selectRoom(int roomNumber, struct Rooms* head) {
     struct Rooms* current = head;
     while (current != NULL) {
@@ -144,7 +175,12 @@ struct Rooms* selectRoom(int roomNumber, struct Rooms* head) {
     }
     return NULL;
 }
-
+/**
+ * @date_added: 4/16
+ * @return_type: Buildings Structure
+ * @parameter: Accepts an INt
+ * @description: returns a Buildings Structure selected by the user to be able to access Rooms Objects of that Buildings Structure
+ */
 struct Buildings* selectBuilding(int bNum) {
     struct Buildings* current = bHead;
     while (current != NULL) {
@@ -161,7 +197,13 @@ struct Buildings* selectBuilding(int bNum) {
     return NULL;
 }
 
-// iprint ung list ng selected na room
+/**
+ * @date_added: 4/15
+ * @return_type: void
+ * @parameter: Accepts Buildings Structure, And Rooms Structure
+ * @description: The Structure Arguments are the structures acquired from the selectBuilding and selectRoom functions, the printSelectedRoom
+ * function prints the data contents of an specific room.
+ */
 void printSelectedRoom(struct Buildings *building, struct Rooms* room) {
     int currentRoomNumber = room->roomNumber;
     printf("Room Number: %d\n", currentRoomNumber);
