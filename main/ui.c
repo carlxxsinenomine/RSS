@@ -13,36 +13,67 @@ void check_winsize(WINDOW *win,int height,int width){
 	}
 }
 
-void auth(WINDOW *win,char pass[]){
-	curs_set(1);
+int auth(WINDOW *win,char pass[]){
 	noecho();
 
 	int height,width;
 	getmaxyx(win,height,width);
 
-	WINDOW *sub=subwin(win,3,width-2,height/2,(width/2)+1);
+	WINDOW *sub=newwin(3,width-2,height/2,(width/2)+1);
 	if(!sub){
 		printf("Failed to load screen\n");
 		exit(1);
 	}
 
+
 	keypad(sub,TRUE);
-	box(sub,0,0);
 
 	char input_pass[19]={0};
-	int i=0;
-
-	mvwprintw(sub,1,1,"Enter User password: ");
-
+	int i;
 	int ch;
+	
+	while(1){
+		box(sub,0,0);
+		mvwprintw(sub,0,2,"[CRTL + X] Cancel");
+		mvwprintw(sub,1,1,"Enter User password: ");
 
-	while((ch=wgetch(sub))!='\n' && i<18){
-		if(ch==KEY_BACKSPACE){
-			
+		i=0;
+		while((ch=wgetch(sub))!='\n' && i<18){
+			int y,x;
+			getyx(sub,y,x);
+
+			if(ch==KEY_BACKSPACE || ch==127){
+				if(i>0){
+					i--;
+					input_pass[i]='\0';
+					mvwprintw(sub,y,x-1," ");
+					wmove(sub,y,x-1);
+					wrefresh(sub);
+				}
+			}
+			else if(ch==24){
+				delwin(sub);
+				return 0;
+			}
+			else if(ch>=32 && ch<=126){
+				input_pass[i]=ch;
+				mvwprintw(sub,y,x,"%c",ch);
+				i++;
+				wrefresh(sub);
+			}
+		}
+		input_pass[i]='\0';
+
+		if(strcmp(input_pass,pass)==0){
+			wclear(sub);
+			wrefresh(sub);
+			delwin(sub);
+			return 1;
+		}
+		else{
+			wclear(sub);
 		}
 	}
-
-	delwin(sub);
 }
 
 void status_bar(WINDOW *win,char *status){
@@ -70,8 +101,6 @@ void user_scrn(void){
 	}
 
 	wborder(win,'|','|','-','-','+','+','+','+');
-
-	auth(win,"123");
 
 	char exit[]="[X] Exit";
 	mvwprintw(win,height-4,(window_width-strlen(exit))/2,"%s",exit);
@@ -231,8 +260,12 @@ void main_scrn(void){
 		ch=wgetch(win);
 		switch(ch){
 			case '1':
-				user_scrn();
-				break;
+				if(auth(win,"123456789123456789")){
+					user_scrn();
+				}
+				else{
+					break;
+				}
 			case '2':
 				break;
 			case '3':
