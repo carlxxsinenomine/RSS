@@ -5,6 +5,8 @@
 #define MAXCOL 3
 #define MAX_SCHEDULES 20
 #define MAX_DAYS 5
+
+
 struct Schedule {
     char day[10];
     char courseCode[20];
@@ -16,17 +18,40 @@ struct Rooms {
     struct Schedule schedules[MAX_SCHEDULES];
     struct Rooms *prev;
     struct Rooms *next;
-} *head, *last;
+};
+
+
+struct Buildings {
+    int buildingNumber;
+    struct Rooms* head;
+    struct Rooms* last;
+    struct Buildings *prev;
+    struct Buildings *next;
+} *bHead=NULL, *bLast=NULL;
 
 const char* DAYS[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
 
-void printRooms() {
-    if (head == NULL) {
+void printBuildings() {
+    if (bHead == NULL) {
         printf("No rooms in the list.\n");
         return;
     }
 
-    struct Rooms *current = head;
+    struct Buildings *current = bHead;
+    printf("Room List:\n");
+    while (current != NULL) {
+        printf("Building %d:\n", current->buildingNumber);
+        current = current->next;
+    }
+}
+
+void printRooms(struct Buildings *building) {
+    if (building->head == NULL) {
+        printf("No rooms in the list.\n");
+        return;
+    }
+
+    struct Rooms *current = building->head;
     printf("Room List:\n");
     while (current != NULL) {
         printf("Room %d:\n", current->roomNumber);
@@ -57,9 +82,34 @@ void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const
     strcpy(sched->time, time);
 }
 
-struct Rooms* createRoom(int roomNumber) {
+struct Buildings* createBuilding(int buildingNumber) {
+    struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
+    if (!newBuilding) { // if new building is NULL
+        printf("Memory allocation failed.");
+        return NULL;
+    }
+
+    newBuilding->buildingNumber = buildingNumber;
+    newBuilding->head = NULL;
+    newBuilding->last = NULL;
+    newBuilding->next = NULL;
+    newBuilding->prev = NULL;
+
+    if (bHead == NULL) {
+        bHead = bLast = newBuilding; // set last equal to newRoom and head equal to last
+    } else {
+        bLast->next = newBuilding; // points to newRoom
+        newBuilding->prev = bLast;
+        bLast = newBuilding;
+    }
+    return newBuilding;
+    
+}
+
+struct Rooms* createRoom(int roomNumber, struct Buildings *currentBuilding) {
 
     struct Rooms* newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
+
     if (!newRoom) { // if newRoom is NULL
         printf("Memory allocation failed.\n");
         return NULL;
@@ -74,17 +124,17 @@ struct Rooms* createRoom(int roomNumber) {
     // strcpy(newRoom->schedule[roomNumber-1][2], time);
 
 
-    if (head == NULL) {
-        head = last = newRoom; // set last equal to newRoom and head equal to last
+    if (currentBuilding->head == NULL) {
+        currentBuilding->head = currentBuilding->last = newRoom; // set last equal to newRoom and head equal to last
     } else {
-        last->next = newRoom; // points to newRoom
-        newRoom->prev = last;
-        last = newRoom;
+        currentBuilding->last->next = newRoom; // points to newRoom
+        newRoom->prev = currentBuilding->last;
+        currentBuilding->last = newRoom;
     }
-    return newRoom;
+    return currentBuilding->last;
 }
 // Pumili ng room na imomodify e.g. print, or baguhin yung values
-struct Rooms* selectRoom(int roomNumber) {
+struct Rooms* selectRoom(int roomNumber, struct Rooms* head) {
     struct Rooms* current = head;
     while (current != NULL) {
         if (current->roomNumber == roomNumber) { // if val of current->roomNumber is equal to current edi same room
@@ -100,12 +150,28 @@ struct Rooms* selectRoom(int roomNumber) {
     return NULL;
 }
 
+struct Buildings* selectBuilding(int bNum) {
+    struct Buildings* current = bHead;
+    while (current != NULL) {
+        if (current->buildingNumber == bNum) { // if val of current->roomNumber is equal to current edi same building
+            return current; // return the current room na imomodify
+        }
+
+        if (current->next == NULL) {
+            printf("Invalid Room");
+            return NULL;
+        }
+        current = current->next; // Iterate thruogh the next List
+    }
+    return NULL;
+}
+
 // iprint ung list ng selected na room
-void printSelectedRoom(struct Rooms* room) {
+void printSelectedRoom(struct Buildings *building, struct Rooms* room) {
     int currentRoomNumber = room->roomNumber;
     printf("Room Number: %d\n", currentRoomNumber);
     // printf("Room Sched Count: %d", room->scheduleCount);
-    if (head == NULL) {
+    if (building->head == NULL) {
         printf("No rooms in the list.\n");
         return;
     }
@@ -119,64 +185,81 @@ void printSelectedRoom(struct Rooms* room) {
 }
 
 int main() {
-
-    FILE *fptr;           
+    // listOfBuildingsPointer, currentBuildingPointer
+    FILE *LOBPtr, *CBPtr;           
 
     int bNumber, maxRooms;
     char line[100];
     int currentRoom = 0; // Room 1, or index zero
 
-    head = NULL;
-    last = NULL;
-    
-    fptr = fopen("bld4.txt", "rt");
-    if (fptr == NULL) {
+    LOBPtr = fopen("listOfBuildings.txt", "rt");
+    if (LOBPtr == NULL) {
         perror("Error opening file");
         return 1;
     }
-    // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
-    // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
-    fgets(line, sizeof(line), fptr);
-    sscanf(line, "Building No: %d", &bNumber);
-    fgets(line, sizeof(line), fptr);
-    sscanf(line, "Max Rooms: %d", &maxRooms);
-    struct Rooms *room = NULL;
-    while(fgets(line, sizeof(line), fptr)) {
-        // If Room: is present on the string
-        if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
-            sscanf(line, "Room: %d", &currentRoom);
-            room = createRoom(currentRoom);
-            continue;
-        }
-        
-        if (strlen(line) <= 1) continue;// If empty line skip.
 
-        int dayIndex;
-        char courseCode[21], time[21];
+    while(fgets(line, sizeof(line), LOBPtr)) {
+        // Stores the Building file name
+        char buildingText[100];
+        sscanf(line, "%s", buildingText);
+        printf("Current Building: %s\n", buildingText);
 
-        if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
+        CBPtr = fopen(buildingText, "rt");
+        // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
+        // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
+        fgets(line, sizeof(line), CBPtr);
+        sscanf(line, "Building No: %d", &bNumber);
+        fgets(line, sizeof(line), CBPtr);
+        sscanf(line, "Max Rooms: %d", &maxRooms);
+        struct Buildings *building = createBuilding(bNumber);
+        struct Rooms *room = NULL;
+        while (fgets(line, sizeof(line), CBPtr))
         {
-            if (room) {
-                addSchedule(room, dayIndex, courseCode, time);
+            // If Room: is present on the string
+            if (strstr(line, "Room:"))
+            { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
+                sscanf(line, "Room: %d", &currentRoom);
+                room = createRoom(currentRoom, building);
+                continue;
+            }
+
+            if (strlen(line) <= 1)
+                continue; // If empty line skip.
+
+            int dayIndex;
+            char courseCode[21], time[21];
+
+            if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
+            {
+                if (room)
+                {
+                    addSchedule(room, dayIndex, courseCode, time);
+                }
             }
         }
+    }
 
-    } 
 
 
-    printRooms();
+    printBuildings();
+    printf("Enter Building number: ");
+    int bNum;
+    scanf("%d", &bNum);
+    struct Buildings* selectedBuilding = selectBuilding(bNum);
+
+    printRooms(selectedBuilding);
     int roomOfChoice;
     printf("Enter Room of choice: ");
     scanf("%d", &roomOfChoice);
-    struct Rooms* selectedRoom = selectRoom(roomOfChoice);
-    printSelectedRoom(selectedRoom);
+    struct Rooms* selectedRoom = selectRoom(roomOfChoice, selectedBuilding->head);
+    printSelectedRoom(selectedBuilding, selectedRoom);
 
 
 
 
 
 
-    fclose(fptr);
+    fclose(CBPtr);
 
     return 0;
 }

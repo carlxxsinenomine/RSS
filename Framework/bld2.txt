@@ -1,17 +1,12 @@
-Building No: 4
+Building No: 2
 Max Rooms: 5
 
 Room:1
 0, cs1a, 7am-9am
 1, it2b, 9am-10am
-.     .
+
 Room:2
 1, it2b, 9am-10am
 1, it2b, 9am-10am
 1, it2b, 9am-10am
-Room:3
-1, it2b, 9am-10am
-1, it2b, 9am-10am
-1, it2b, 9am-10am
-
 
