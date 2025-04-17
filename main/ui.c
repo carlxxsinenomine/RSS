@@ -1,4 +1,11 @@
 #include "ui.h"
+/* Di pa final mga function parameters. Di ko pa alam ano ilalagay tas kung ano tiga return niyo per function.
+ * Sa building: retrieve building number of buildings eigther naka list na sa file number of buildings or scan kung anong text meron "Building no."
+ * Same rin sa room.
+ * Same sa course.
+ * Sa date dunno pa
+ * Note: Lahat dito placeholder pa lang
+ */
 
 //Checks window size limit
 void check_winsize(WINDOW *win,int height,int width){
@@ -25,10 +32,10 @@ int auth(WINDOW *win,char pass[]){
 		exit(1);
 	}
 
-
 	keypad(sub,TRUE);
 
 	char input_pass[19]={0};
+	const char pass_lim[]="Reached password limit";
 	int i;
 	int ch;
 	
@@ -36,11 +43,12 @@ int auth(WINDOW *win,char pass[]){
 		box(sub,0,0);
 		mvwprintw(sub,0,2,"[CRTL + X] Cancel");
 		mvwprintw(sub,1,1,"Enter User password: ");
-
+		
 		i=0;
-		while((ch=wgetch(sub))!='\n' && i<18){
+		while((ch=wgetch(sub))!='\n' && i<19){
 			int y,x;
 			getyx(sub,y,x);
+			
 
 			if(ch==KEY_BACKSPACE || ch==127){
 				if(i>0){
@@ -56,14 +64,16 @@ int auth(WINDOW *win,char pass[]){
 				return 0;
 			}
 			else if(ch>=32 && ch<=126){
-				input_pass[i]=ch;
-				mvwprintw(sub,y,x,"%c",ch);
-				i++;
-				wrefresh(sub);
+				if(i<18){
+					input_pass[i]=ch;
+					mvwprintw(sub,y,x,"%c",ch);
+					i++;
+					wrefresh(sub);
+				}
 			}
 		}
 		input_pass[i]='\0';
-
+			
 		if(strcmp(input_pass,pass)==0){
 			wclear(sub);
 			wrefresh(sub);
@@ -74,6 +84,8 @@ int auth(WINDOW *win,char pass[]){
 			wclear(sub);
 		}
 	}
+	
+	keypad(sub,FALSE);
 }
 
 void status_bar(WINDOW *win,char *status){
@@ -85,6 +97,27 @@ void status_bar(WINDOW *win,char *status){
 	wattrset(win,A_REVERSE);
 	mvwprintw(win,height-2,(width-len)-2,"%s",status);
 	wattrset(win,A_NORMAL);
+}
+
+void list_building(WINDOW *win,int height,int width,int buildings[]/* Di ko aram ano ilaag*/){
+
+	const char *bldng[]={
+		" ____        _ _     _ _             ",             
+		"| __ ) _   _(_) | __| (_)_ __   __ _ ",
+		"|  _ \\| | | | | |/ _` | | '_ \\ / _` |",
+		"| |_) | |_| | | | (_| | | | | | (_| |",
+		"|____/ \\__,_|_|_|\\__,_|_|_| |_|\\__, |",
+		"                                |___/"
+	};
+
+	int bldng_row_size=sizeof(bldng)/sizeof(bldng[0]);
+	for(int i=0;i<bldng_row_size;i++){
+		int len=strlen(bldng[i]);
+		int tab=(width-len)/2;
+		mvwprintw(win,i+3,tab,"%s",bldng[i]);
+	}
+	
+	int bldng_widtn=width/2;
 }
 
 //Generate user screen
@@ -108,6 +141,11 @@ void user_scrn(void){
 
 	status_bar(win,"User");
 
+	//Placeholder building arr:
+	int build[]={1,2};
+
+	list_building(win,height,window_width,build);
+
 	int ch=0;
 	
 	while(1){
@@ -122,6 +160,35 @@ void user_scrn(void){
 
 //Generate admin screen
 void admin_scrn(void){
+	int height,width;
+	getmaxyx(stdscr,height,width);
+
+	int window_width=width/2;
+
+	WINDOW *win=newwin(height,window_width,0,width/4);
+	if(!win){
+		printf("Failed to load screen\n");
+		exit(1);
+	}
+
+	wborder(win,'|','|','-','-','+','+','+','+');
+
+	char exit[]="[X] Exit";
+	mvwprintw(win,height-4,(window_width-strlen(exit))/2,"%s",exit);
+
+
+	status_bar(win,"Admin");
+
+	int ch=0;
+	
+	while(1){
+		ch=wgetch(win);
+		if(toupper(ch)==('X')){
+			break;
+		}
+		check_winsize(win,height,window_width);
+	}
+	delwin(win);
 
 }
 
@@ -260,13 +327,20 @@ void main_scrn(void){
 		ch=wgetch(win);
 		switch(ch){
 			case '1':
-				if(auth(win,"123456789123456789")){
+				if(auth(win,"123")){
 					user_scrn();
 				}
 				else{
 					break;
 				}
+				break;
 			case '2':
+				if(auth(win,"admin")){
+					admin_scrn();
+				}
+				else{
+					break;
+				}
 				break;
 			case '3':
 				about_scrn();
