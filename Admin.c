@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
+#include<ctype.h>
 
 #define MAXCOL 3
 #define MAX_SCHEDULES 20
@@ -12,6 +13,7 @@ struct Schedule {
     char courseCode[20];
     char time[20];
 };
+
 struct Rooms {
     int roomNumber;
     int scheduleCount;
@@ -29,7 +31,7 @@ struct Buildings {
     struct Buildings *next;
 } *bHead=NULL, *bLast=NULL;
 
-const char* DAYS[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+char* DAYS[MAX_DAYS] = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday"};
 /**
  * @date_added: 4/16
  * @return_type: void
@@ -214,34 +216,176 @@ void printSelectedRoom(struct Buildings *building, struct Rooms* room) {
     }
 
     for (int i = 0; i < room->scheduleCount; i++) {
-        printf("  %s, %s at %s\n",
+        printf("%d.  %s, %s at %s\n",
+               i,
                room->schedules[i].day,
                room->schedules[i].courseCode,
                room->schedules[i].time);
     }
 }
 
+// Save updated version
+// void saveCurrentConfiguration(FILE *currentList, FILE *currentBPTR) {
+    
+// }
+
+void deleteRoomSchedule(struct Rooms *room) {
+    int currentRoomNumber = room->roomNumber;
+
+    printf("Room Number: %d\n", currentRoomNumber);
+    printf("Enter Row to delete: ");
+
+    int rowToDelete;
+    scanf("%d", &rowToDelete);
+
+    for(int i = rowToDelete; i < room->scheduleCount -1; i++) {
+       room->schedules[i] = room->schedules[i + 1];
+    }
+
+    room->scheduleCount--;
+
+    for (int i = 0; i < room->scheduleCount; i++) {
+        printf("%d.  %s, %s at %s\n",
+               i,
+               room->schedules[i].day,
+               room->schedules[i].courseCode,
+               room->schedules[i].time);
+    }
+}
+
+// Transforms Uppercase words to lowercase
+void upToLower(char word[10]) {
+    for (int i = 0; i < strlen(word); i++) {
+        word[i] = tolower(word[i]);
+    }
+}
+
+void addRoomSchedule(struct Rooms* room) {
+
+    if (room->scheduleCount == MAX_SCHEDULES) {
+        printf("Maximum schedules reached\n");
+        return;
+    }
+
+    int currentRoomNumber = room->roomNumber;
+    printf("\nRoom Number: %d\n", currentRoomNumber);
+    
+    char day[15], coursecode[15], time[15];
+    printf("Enter day: ");
+    scanf("%s", day);
+    printf("Enter coursecode: (it1a, cs1a): ");
+    scanf("%s", coursecode);
+    printf("Enter time: (e.g. 7am-9am): ");
+    scanf("%s", time);
+
+    // just to make sure everytbing's in lowercase
+    upToLower(day);
+    upToLower(coursecode);
+    upToLower(time);
+
+    printf("%s, %s, %s", day, coursecode, time);
+    // Check if day is available
+    printf("%s", day);
+    printf("   %s\n", DAYS[0]);
+
+    // Checks if user inputted day exists on the DAYS array.
+    for (int i = 0; i <= MAX_DAYS; i++) {
+        if(i >= MAX_DAYS) {
+            printf("Invalid day input, please try again.\n");
+            addRoomSchedule(room);
+        }
+        if(strcmp(DAYS[i], day) == 0)
+            break;
+    }
+    
+    // Error handling for the time input string
+    char firstHalf[10]; // First half of the hh:mmxx - hh:mmxx
+    char secondHalf[10]; // Second half of the hh:mmxx - hh:mmxx
+    sscanf(time, "%9[^-]-%s", firstHalf, secondHalf);
+    // For debugging purposes lang to
+    printf("First half: %s\n", firstHalf);
+    printf("second half: %s\n", secondHalf);
+    
+    int FHI; // First half of hour but int; 11pm the 11 will be stored
+    int SHI; // likewise...katamad magcomment
+    int FHMI = 0; // First half of time but minutes; HH:MMxx; MM
+    int SHMI = 0;
+    
+    // checks if both first and second half len of string is equal 7 (hh:mmxx) then capture that minute value as well
+    if (strlen(firstHalf) > 4 && strlen(secondHalf) > 3) {
+        sscanf(firstHalf, "%d:%d", &FHI, &FHMI);
+        sscanf(secondHalf, "%d:%d", &SHI, &SHMI);
+    } else if(strlen(firstHalf) > 4 && strlen(secondHalf) <= 4) {
+        sscanf(firstHalf, "%d:%d", &FHI, &FHMI);
+        sscanf(secondHalf, "%d", &SHI);
+    } else if(strlen(firstHalf) <= 4 && strlen(secondHalf) > 4) {
+        sscanf(firstHalf, "%d", &FHI);
+        sscanf(secondHalf, "%d:%d", &SHI, &SHMI);
+    } else {
+        sscanf(firstHalf, "%d", &FHI);
+        sscanf(secondHalf, "%d", &SHI);
+    }
+    
+    if(FHI > 12 || FHI < 6) { // HH:mm; if HH if over 12 then error(this aint military time bruv), if HH is less than 6 then error there's no way someone's class starts at 5
+        printf("Invalid time values, please try again\n");
+        addRoomSchedule(room);
+    }
+
+    if(SHI > 10 || SHI < 1) { // HH:mm; if HH if over 10(cause u cant have classes at 11 en't u?) or less than 1 then error(this aint military time bruv)
+        printf("Invalid time values, please try again\n");
+        addRoomSchedule(room);
+    }
+
+    if(FHMI || SHMI) // if  hindi 0 ang value ng minutes
+        if((FHMI > 59 || FHMI < 0) || (SHMI > 59 || SHMI < 0)) {
+            printf("Invalid time value, please try again.\n");
+            addRoomSchedule(room);
+        }
+    
+    if(firstHalf[strlen(firstHalf) - 2] == secondHalf[strlen(secondHalf) - 2]) { 
+        int isAM = (firstHalf[strlen(firstHalf) - 2] == 'a') ? 1 : 0; // 1 if AM 0 if PM
+        if((isAM && SHI < FHI) || (!isAM && SHI < FHI)) { // if it's AM or PM and Second half is higher than first half then error
+            printf("Invalid time values, Please try again\n");
+            addRoomSchedule(room);
+        }
+    }
+
+    // Store add new Datas to the array of Schedule structures of the current Room structure passed
+    struct Schedule *sched = &room->schedules[room->scheduleCount++];
+    strcpy(sched->day, day);
+    strcpy(sched->courseCode, coursecode);
+    strcpy(sched->time, time);
+
+    for (int i = 0; i < room->scheduleCount; i++) 
+        printf("%d.  %s, %s at %s\n",
+               i,
+               room->schedules[i].day,
+               room->schedules[i].courseCode,
+               room->schedules[i].time);
+}
+
 int main() {
     // listOfBuildingsPointer, currentBuildingPointer
-    FILE *LOBPtr, *CBPtr;           
+    FILE *LOBPtr, *CBPtr;  
 
     int bNumber, maxRooms;
     char line[100];
+    char buildingText[100];
     int currentRoom = 0; // Room 1, or index zero
 
-    LOBPtr = fopen("listOfBuildings.txt", "rt");
+    LOBPtr = fopen("./current/listOfBuildings.txt", "rt");
     if (LOBPtr == NULL) {
-        perror("Error opening file");
+        printf("Error opening file");
         return 1;
     }
 
     while(fgets(line, sizeof(line), LOBPtr)) {
         // Stores the Building file name
-        char buildingText[100];
         sscanf(line, "%s", buildingText);
         printf("Current Building: %s\n", buildingText);
-
-        CBPtr = fopen(buildingText, "rt");
+        char dir[20] = "./current/";
+        strcat(dir, buildingText);
+        CBPtr = fopen(dir, "rt");
         // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
         // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
         fgets(line, sizeof(line), CBPtr);
@@ -250,8 +394,7 @@ int main() {
         sscanf(line, "Max Rooms: %d", &maxRooms);
         struct Buildings *building = createBuilding(bNumber);
         struct Rooms *room = NULL;
-        while (fgets(line, sizeof(line), CBPtr))
-        {
+        while (fgets(line, sizeof(line), CBPtr)) {
             // If Room: is present on the string
             if (strstr(line, "Room:"))
             { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
@@ -267,15 +410,11 @@ int main() {
             char courseCode[21], time[21];
 
             if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
-            {
                 if (room)
-                {
                     addSchedule(room, dayIndex, courseCode, time);
-                }
-            }
         }
     }
-
+    // For Printing
     printBuildings();
     printf("Enter Building number: ");
     int bNum;
@@ -288,7 +427,12 @@ int main() {
     scanf("%d", &roomOfChoice);
     struct Rooms* selectedRoom = selectRoom(roomOfChoice, selectedBuilding->head);
     printSelectedRoom(selectedBuilding, selectedRoom);
-
+    addRoomSchedule(selectedRoom);
+    // printf("D for Delete, U for Update");
+    // char operation;
+    // scanf("%c", &operation);
+    // Update
+    
     fclose(CBPtr);
 
     return 0;
