@@ -11,6 +11,8 @@
 void check_winsize(WINDOW *win,int height,int width){
 	int temp_h=height,temp_w=width;
 	getmaxyx(win,height,width);
+
+	//Calculate height and width nung terminal (mano-mano yan hanggang di mag overlap text)
 	if(height<38 || width<105 || height!=temp_h || width!=temp_w){
 		endwin();
 		printf("Program Crashed.\n");
@@ -20,12 +22,14 @@ void check_winsize(WINDOW *win,int height,int width){
 	}
 }
 
+//Auth function
 int auth(WINDOW *win,char pass[]){
 	noecho();
 
 	int height,width;
 	getmaxyx(win,height,width);
 
+	//New win for auth (pangit subwin)
 	WINDOW *sub=newwin(3,width-2,height/2,(width/2)+1);
 	if(!sub){
 		printf("Failed to load screen\n");
@@ -34,6 +38,7 @@ int auth(WINDOW *win,char pass[]){
 
 	keypad(sub,TRUE);
 
+	//Pass limit 19 to make space for NUL char
 	char input_pass[19]={0};
 	const char pass_lim[]="Reached password limit";
 	int i;
@@ -45,11 +50,13 @@ int auth(WINDOW *win,char pass[]){
 		mvwprintw(sub,1,1,"Enter User password: ");
 		
 		i=0;
+
+		//While user don't press enter
 		while((ch=wgetch(sub))!='\n' && i<19){
 			int y,x;
 			getyx(sub,y,x);
 			
-
+			//ASCII value ng backspace 127
 			if(ch==KEY_BACKSPACE || ch==127){
 				if(i>0){
 					i--;
@@ -59,10 +66,12 @@ int auth(WINDOW *win,char pass[]){
 					wrefresh(sub);
 				}
 			}
+			//ASCII value ng esc 24
 			else if(ch==24){
 				delwin(sub);
 				return 0;
 			}
+			//32-126 only kasi yan lang printable ASCII
 			else if(ch>=32 && ch<=126){
 				if(i<18){
 					input_pass[i]=ch;
@@ -72,6 +81,8 @@ int auth(WINDOW *win,char pass[]){
 				}
 			}
 		}
+
+		//Terminates the buffer
 		input_pass[i]='\0';
 			
 		if(strcmp(input_pass,pass)==0){
@@ -88,6 +99,7 @@ int auth(WINDOW *win,char pass[]){
 	keypad(sub,FALSE);
 }
 
+//Status bar function
 void status_bar(WINDOW *win,char *status){
 	int height,width;
 	getmaxyx(win,height,width);
@@ -95,10 +107,11 @@ void status_bar(WINDOW *win,char *status){
 	int len=strlen(status);
 
 	wattrset(win,A_REVERSE);
-	mvwprintw(win,height-2,(width-len)-2,"%s",status);
+	mvwprintw(win,height-2,(width-len)-2,"%s",status); //Prints sa bottom right side
 	wattrset(win,A_NORMAL);
 }
 
+//Building list output temp
 void list_building(WINDOW *win,int height,int width,int buildings[]/* Di ko aram ano ilaag*/){
 
 	const char *bldng[]={
@@ -215,6 +228,9 @@ void about_scrn(void){
 		"/_/   \\_\\____/ \\___/ \\___/  |_|  "
 	};
 
+	/* Print ASCII art row by row (di naman need yan na about_row_size)
+	 * Pero okay na ata yan for readability (same goes sa others)
+	 */
 	int about_row_size=sizeof(about)/sizeof(about[0]);
 	for(int i=0;i<about_row_size;i++){
 		int len=strlen(about[i]);
@@ -266,6 +282,7 @@ void main_scrn(void){
 	
 	int window_width=width/2;
 
+	//Set main window sa gitna (same lang sa others di ko alam kung practical to pero mas okay ata na separate allocation ng windows for each)
 	WINDOW *win=newwin(height,window_width,0,width/4);
 	
 	check_winsize(win,height,window_width);
