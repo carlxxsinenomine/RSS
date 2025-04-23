@@ -325,6 +325,8 @@ void printSelectedRoom(struct Building *building, struct Rooms* room, char *coll
     }
 }
 
+//siya ang nag sscan sa college program and mmatch niya sa course code
+//example coursecode: cs1a collegeprogram:cs, lalabas is yung datas na meron cs
 int filterCollegeProgram(char *courseCode, char *college_program) {
     return strstr(courseCode, college_program) != NULL;
 }
