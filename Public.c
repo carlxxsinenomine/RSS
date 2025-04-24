@@ -42,12 +42,13 @@ void printRoomNumber(struct Building *building);
 struct Building *createBuilding(int bldgNum);
 struct Building *selectBuilding(int bldgNum); 
 void printfSelectedBuilding(struct Building *building);
+void upToLower(char word[10]);
 void printBuildingNumber();
 int filterCollegeProgram(char *courseCode, char *college_program);
 
 int main(void) {
   
-    FILE *fptr, *listOfBuildings;           
+    FILE *fptr, *listOfBuildingsPtr;           
 
     int bNumber, maxRooms;
     char line[100], bLine[100];
@@ -56,15 +57,15 @@ int main(void) {
     head = NULL;
     last = NULL;
     
-    listOfBuildings = fopen("listOfBuildings.txt", "rt");
+    listOfBuildingsPtr = fopen("listOfBuildings.txt", "rt");
 
-    if (listOfBuildings == NULL) {
+    if (listOfBuildingsPtr == NULL) {
         perror("Error opening file");
         return 1;
     }
 
     // while loop na nagreread line by line from the listOfBuildings.txt
-    while (fscanf(listOfBuildings, "%s", bLine) != EOF) {
+    while (fscanf(listOfBuildingsPtr, "%s", bLine) != EOF) {
        
         fptr = fopen(bLine, "rt");
 
@@ -107,15 +108,14 @@ int main(void) {
     } 
    
     printBuildingNumber();
+    char college_program[10];
+    printf("Enter your college program: ");
+    scanf("%s", college_program);
+    upToLower(college_program);
 
     int buildingChoice;
     printf("Enter building number to view available rooms: ");
     scanf("%d", &buildingChoice);
-
-    char college_program[10];
-    printf("Enter your college program: ");
-    scanf("%s", college_program);
-
 
     struct Building *selectedBuilding = selectBuilding(buildingChoice);
     printfSelectedBuilding(selectedBuilding);
@@ -148,7 +148,7 @@ int main(void) {
         break;
     }
 
-    fclose(listOfBuildings);
+    fclose(listOfBuildingsPtr);
 
     return 0;
 }
@@ -187,7 +187,7 @@ struct Building *selectBuilding(int bldgNum) {
             printf("Invalid building number.");
             return NULL;
         }
-        current = current->next; // Iterate thruogh the next List
+        current = current->next; // Iterate through the next List
     }
     return NULL;
 }
@@ -202,6 +202,7 @@ void printfSelectedBuilding(struct Building *building){
     }
 }
 
+//date added: 04/15
 void printBuildingNumber() {
     struct Building *current = bldgHead;
     printf("Available buildings: \n");
@@ -212,6 +213,7 @@ void printBuildingNumber() {
     }
 }
 
+//date edited: 04/15
 void printRoomNumber(struct Building *building){
     struct Rooms *current = building->head; 
 
@@ -231,8 +233,10 @@ void printRooms() {
     printf("Room List:\n");
     while (current != NULL) {
         printf("Room %d:\n", current->roomNumber);
+        
+        //tig ttravese niya ang list
         for (int i = 0; i < current->scheduleCount; i++) {
-            printf("  %s, %s at %s\n", 
+            printf("  %s, %s at %s\n",             
                    current->schedules[i].day,
                    current->schedules[i].courseCode,
                    current->schedules[i].time);
@@ -325,8 +329,14 @@ void printSelectedRoom(struct Building *building, struct Rooms* room, char *coll
     }
 }
 
-//siya ang nag sscan sa college program and mmatch niya sa course code
-//example coursecode: cs1a collegeprogram:cs, lalabas is yung datas na meron cs
+//date added: 04/23
+//date edited: 04/24
+void upToLower(char word[10]) {
+    for(int i = 0; i< strlen(word); i++) word[i] = tolower(word[i]);
+}
+
+//date added: 04/23
+//date edited: 04/24
 int filterCollegeProgram(char *courseCode, char *college_program) {
     return strstr(courseCode, college_program) != NULL;
 }
