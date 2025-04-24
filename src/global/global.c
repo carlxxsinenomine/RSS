@@ -1,4 +1,6 @@
 #include <ncurses.h>
+#include <stdlib.h>
+#include <string.h>
 
 //Checks window size limit so text don't overlap
 void check_winsize(WINDOW *win,int height,int width){

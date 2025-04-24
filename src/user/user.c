@@ -1,7 +1,12 @@
 #include <ncurses.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#include "global.h"
 
 //Generate user screen
-void user_scrn(void){
+void user_scr(void){
     int height,width;
     getmaxyx(stdscr,height,width);
 
@@ -20,11 +25,6 @@ void user_scrn(void){
 
 
     status_bar(win,"User");
-
-    //Placeholder building arr:
-    int build[]={1,2};
-
-    list_building(win,height,window_width,build);
 
     int ch=0;
 

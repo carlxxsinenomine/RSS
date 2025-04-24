@@ -6,6 +6,6 @@
 //Global functions
 void check_winsize(WINDOW *win,int height,int width);
 int auth(WINDOW *win,char pass[]);
-void status_bar(WINDOW *win,char *status)
+void status_bar(WINDOW *win,char *status);
 
 #endif

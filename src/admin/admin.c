@@ -1,7 +1,12 @@
 #include <ncurses.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#include "global.h"
 
 //Generate admin screen
-void admin_scrn(void){
+void admin_scr(void){
     int height,width;
     getmaxyx(stdscr,height,width);
 

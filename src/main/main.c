@@ -1,4 +1,9 @@
 #include <ncurses.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "screens.h"
+#include "global.h"
 
 int main(){
 	initscr();
@@ -85,7 +90,7 @@ int main(){
 				}
 				break;
 			case '3':
-				about_scrn();
+				about_scr();
 				break;
 			case '4':
 				break;

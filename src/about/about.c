@@ -1,4 +1,9 @@
 #include <ncurses.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#include "global.h"
 
 //Generate about screen
 void about_scr(void){
