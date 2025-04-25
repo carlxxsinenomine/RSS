@@ -452,7 +452,7 @@ void sortSchedules(struct Rooms* room) {
             
             // Only compare times if the days are the same
             if (strcasecmp(room->schedules[k].day, room->schedules[k+1].day) == 0) {
-                // Compare start times
+                // Perform swap if firsthalf if greater than the latter half ez
                 if (firstHalf > secondHalf) {
                     struct Schedule temp = room->schedules[k];
                     room->schedules[k] = room->schedules[k+1];
