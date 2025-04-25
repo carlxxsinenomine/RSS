@@ -225,7 +225,22 @@ void printSelectedRoom(struct Buildings *building, struct Rooms* room) {
 }
 
 // Save updated version
-// void saveCurrentConfiguration(FILE *currentList, FILE *currentBPTR) {
+// void _saveChanges(int buildingNumber) {
+//     // changesPTR; is where all the changes history will be written
+//     // savePTR; current saved datas will be stored;
+//     FILE* changesPTR, savePTR;
+//     char strBuildingNumber[5];
+
+//     sprintf(strBuildingNumber, "%d", buildingNumber);
+
+//     char dirChanges[125] = "./changes/last_changes_bld";
+//     strcpy(dirChanges, strBuildingNumber);
+//     strcpy(dirChanges, ".txt");
+//     char dirCurrent[125] = "./current/bld";
+//     strcpy(dirCurrent, strBuildingNumber);
+//     strcpy(dirCurrent, ".txt");
+    
+//     changesPTR = fopen("");
     
 // }
 
@@ -261,7 +276,6 @@ void upToLower(char word[10]) {
 }
 
 void addRoomSchedule(struct Rooms* room) {
-
     if (room->scheduleCount == MAX_SCHEDULES) {
         printf("Maximum schedules reached\n");
         return;
@@ -297,7 +311,7 @@ void addRoomSchedule(struct Rooms* room) {
         if(strcmp(DAYS[i], day) == 0)
             break;
     }
-    
+
     // Error handling for the time input string
     char firstHalf[10]; // First half of the hh:mmxx - hh:mmxx
     char secondHalf[10]; // Second half of the hh:mmxx - hh:mmxx
@@ -325,31 +339,49 @@ void addRoomSchedule(struct Rooms* room) {
         sscanf(firstHalf, "%d", &FHI);
         sscanf(secondHalf, "%d", &SHI);
     }
-    
-    if(FHI > 12 || FHI < 6) { // HH:mm; if HH if over 12 then error(this aint military time bruv), if HH is less than 6 then error there's no way someone's class starts at 5
-        printf("Invalid time values, please try again\n");
-        addRoomSchedule(room);
+    //TODO: Create an error handling to handle overlapping schedules on a room
+    for (int index=0; index < room->scheduleCount; index++) {
+        if(strcmp(room->schedules[index].day, day) == 0)  {// if same day as inputted value
+            int schedFirstHalf, schedSecHalf,schedSecHalfMin;
+            sscanf(room->schedules[index].time, "%d", &schedFirstHalf);//retrieves the first half of hh:mmxx-hh:mmxx
+            sscanf(room->schedules[index].time, "%50[^-]-%d:%d", &schedSecHalf, &schedSecHalfMin);
+            if((FHI == schedFirstHalf) || (FHI == schedSecHalf && FHMI < schedSecHalfMin)) {//e.g 7 and 7:30, then error
+                printf("Error overlapping values\n");
+                return;
+            }
+        }
     }
 
-    if(SHI > 10 || SHI < 1) { // HH:mm; if HH if over 10(cause u cant have classes at 11 en't u?) or less than 1 then error(this aint military time bruv)
-        printf("Invalid time values, please try again\n");
-        addRoomSchedule(room);
+    int isAM = (firstHalf[strlen(firstHalf) - 2] == 'a') ? 1 : 0; // 1 if AM 0 if PM
+    printf("isAm: %d\n", isAM);
+    if(firstHalf[strlen(firstHalf) - 2] == secondHalf[strlen(secondHalf) - 2]) { 
+        if((isAM && SHI < FHI) || (!isAM && SHI < FHI)) { // if it's AM or PM and Second half is higher than first half then error
+            printf("3Invalid time values, Please try again\n");
+            addRoomSchedule(room);
+        }
+    }
+    // HH:mm; if HH if over 12 then error(this aint military time bruv), if HH is less than 6 then error there's no way someone's class starts at 5
+    // HH:mm; if HH if over 10(cause u cant have classes at 11 en't u?) or less than 1 then error(this aint military time bruv)
+    if(isAM) {
+        if(FHI > 12 || FHI < 6 || SHI > 12 || SHI < 6) { 
+            printf("1Invalid time values, please try again\n");
+            addRoomSchedule(room);
+        }
+    } else {
+        if(FHI > 10 || FHI < 1 || SHI > 10 || SHI < 1) { 
+            if(isAM) {
+                printf("11Invalid time values, please try again\n");
+                addRoomSchedule(room);
+            }
+        }
     }
 
     if(FHMI || SHMI) // if  hindi 0 ang value ng minutes
         if((FHMI > 59 || FHMI < 0) || (SHMI > 59 || SHMI < 0)) {
-            printf("Invalid time value, please try again.\n");
+            printf("2Invalid time value, please try again.\n");
             addRoomSchedule(room);
         }
     
-    if(firstHalf[strlen(firstHalf) - 2] == secondHalf[strlen(secondHalf) - 2]) { 
-        int isAM = (firstHalf[strlen(firstHalf) - 2] == 'a') ? 1 : 0; // 1 if AM 0 if PM
-        if((isAM && SHI < FHI) || (!isAM && SHI < FHI)) { // if it's AM or PM and Second half is higher than first half then error
-            printf("Invalid time values, Please try again\n");
-            addRoomSchedule(room);
-        }
-    }
-
     // Store add new Datas to the array of Schedule structures of the current Room structure passed
     struct Schedule *sched = &room->schedules[room->scheduleCount++];
     strcpy(sched->day, day);
@@ -362,6 +394,73 @@ void addRoomSchedule(struct Rooms* room) {
                room->schedules[i].day,
                room->schedules[i].courseCode,
                room->schedules[i].time);
+}
+// Sort Schedules using the bubble sort Algo
+void sortSchedules(struct Rooms* room) {
+    // Sort schedules per day using bubble sort
+    for (int i = 0; i < room->scheduleCount - 1; i++) {
+        for (int k = 0; k < room->scheduleCount - i - 1; k++) {
+            int dayIndex = 0, dayIndex2 = 0;
+            
+            // Find the index of the first day
+            for (int index = 0; index < MAX_DAYS; index++) {
+                if (strcasecmp(room->schedules[k].day, DAYS[index]) == 0) {
+                    dayIndex = index;
+                    break;
+                }
+            }
+            
+            // Find the index of the second day
+            for (int index = 0; index < MAX_DAYS; index++) {
+                if (strcasecmp(room->schedules[k+1].day, DAYS[index]) == 0) {
+                    dayIndex2 = index;
+                    break;
+                }
+            }
+            
+            // If days are out of order, perform swap
+            if (dayIndex > dayIndex2) {
+                struct Schedule temp = room->schedules[k];
+                room->schedules[k] = room->schedules[k+1];
+                room->schedules[k+1] = temp;
+            }
+        }
+        
+    }
+
+    // Then sort by time within each day
+    for (int i = 0; i < room->scheduleCount - 1; i++) {
+        for (int k = 0; k < room->scheduleCount - i - 1; k++) {
+            int firstHalf, secondHalf;
+            char fTime[11], sTime[11];
+
+
+            sscanf(room->schedules[k].time, "%10[^-]-", fTime);
+            sscanf(room->schedules[k+1].time, "%10[^-]-", sTime);
+            sscanf(room->schedules[k].time, "%d", &firstHalf);
+            sscanf(room->schedules[k+1].time, "%d", &secondHalf);
+            
+            int isFirstPM = (fTime[strlen(fTime) - 2] == 'p') ? 1 : 0;
+            int isSecondPM = (sTime[strlen(sTime) - 2] == 'p') ? 1 : 0;
+
+            //convert to 24 format if pm
+            if(isFirstPM) 
+                firstHalf += 12;
+            
+            if(isSecondPM)
+                secondHalf += 12;
+            
+            // Only compare times if the days are the same
+            if (strcasecmp(room->schedules[k].day, room->schedules[k+1].day) == 0) {
+                // Compare start times
+                if (firstHalf > secondHalf) {
+                    struct Schedule temp = room->schedules[k];
+                    room->schedules[k] = room->schedules[k+1];
+                    room->schedules[k+1] = temp;
+                }
+            }
+        }
+    }
 }
 
 int main() {
@@ -383,9 +482,9 @@ int main() {
         // Stores the Building file name
         sscanf(line, "%s", buildingText);
         printf("Current Building: %s\n", buildingText);
-        char dir[20] = "./current/";
-        strcat(dir, buildingText);
-        CBPtr = fopen(dir, "rt");
+        char dirChanges[20] = "./current/";
+        strcat(dirChanges, buildingText);
+        CBPtr = fopen(dirChanges, "rt");
         // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
         // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
         fgets(line, sizeof(line), CBPtr);
@@ -396,8 +495,7 @@ int main() {
         struct Rooms *room = NULL;
         while (fgets(line, sizeof(line), CBPtr)) {
             // If Room: is present on the string
-            if (strstr(line, "Room:"))
-            { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
+            if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
                 sscanf(line, "Room: %d", &currentRoom);
                 room = createRoom(currentRoom, building);
                 continue;
@@ -426,8 +524,9 @@ int main() {
     printf("Enter Room of choice: ");
     scanf("%d", &roomOfChoice);
     struct Rooms* selectedRoom = selectRoom(roomOfChoice, selectedBuilding->head);
+    sortSchedules(selectedRoom);
     printSelectedRoom(selectedBuilding, selectedRoom);
-    addRoomSchedule(selectedRoom);
+    // addRoomSchedule(selectedRoom);
     // printf("D for Delete, U for Update");
     // char operation;
     // scanf("%c", &operation);
