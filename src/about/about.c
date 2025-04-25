@@ -5,7 +5,11 @@
 
 #include "global.h"
 
-//Generate about screen
+/* @date_added: 04/10/2025
+ * @return_type: void
+ * @params: void
+ * @description: Makes a new window for about screen
+ */
 void about_scr(void){
     int height,width;
     getmaxyx(stdscr,height,width);
@@ -28,9 +32,6 @@ void about_scr(void){
         "/_/   \\_\\____/ \\___/ \\___/  |_|  "
     };
 
-    /* Print ASCII art row by row (di naman need yan na about_row_size)
-     * Pero okay na ata yan for readability (same goes sa others)
-     */
     int about_row_size=sizeof(about)/sizeof(about[0]);
     for(int i=0;i<about_row_size;i++){
         int len=strlen(about[i]);

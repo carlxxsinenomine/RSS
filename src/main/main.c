@@ -5,6 +5,14 @@
 #include "screens.h"
 #include "global.h"
 
+//Function initialization
+int auth(WINDOW *win,char pass[]){
+
+/* @date_added: 04/10/2025
+ * @return_type: int
+ * @params: argc, argv
+ * @description: Main window. Utilizes every function defined.
+ */
 int main(){
 	initscr();
 	noecho();
@@ -15,7 +23,6 @@ int main(){
 
 	int window_width=width/2;
 
-	//Set main window sa gitna (same lang sa others di ko alam kung practical to pero mas okay ata na separate allocation ng windows for each)
 	WINDOW *win=newwin(height,window_width,0,width/4);
 
 	check_winsize(win,height,window_width);
@@ -73,6 +80,7 @@ int main(){
 
 	int ch=0;
 
+	//Calls screen functions
 	do{
 		ch=wgetch(win);
 		switch(ch){
@@ -104,5 +112,84 @@ int main(){
 
         endwin();
         return 0;
+}
+
+/* @date_added: 04/16/2025
+ * @return_type: int
+ * @params: window, password
+ * @description: Creates a window to accept user input for password. Verifies password for program to continue.
+ */
+int auth(WINDOW *win,char pass[]){
+    noecho();
+
+    int height,width;
+    getmaxyx(win,height,width);
+
+    WINDOW *sub=newwin(3,width-2,height/2,(width/2)+1);
+    if(!sub){
+        printf("Failed to load screen\n");
+        exit(1);
+    }
+
+    keypad(sub,TRUE);
+
+    char input_pass[19]={0};
+    const char pass_lim[]="Reached password limit";
+    int i;
+    int ch;
+
+    while(1){
+        box(sub,0,0);
+        mvwprintw(sub,0,2,"[CRTL + X] Cancel");
+        mvwprintw(sub,1,1,"Enter User password: ");
+
+        i=0;
+
+        //While user don't press enter
+        while((ch=wgetch(sub))!='\n' && i<19){
+            int y,x;
+            getyx(sub,y,x);
+
+            //ASCII value of backsapce is 127
+            if(ch==KEY_BACKSPACE || ch==127){
+                if(i>0){
+                    i--;
+                    input_pass[i]='\0';
+                    mvwprintw(sub,y,x-1," ");
+                    wmove(sub,y,x-1);
+                    wrefresh(sub);
+                }
+            }
+            //ASCII value of ESC key is 24
+            else if(ch==24){
+                delwin(sub);
+                return 0;
+            }
+            //Printable ASCII characters are only within the range of 32-126
+            else if(ch>=32 && ch<=126){
+                if(i<18){
+                    input_pass[i]=ch;
+                    mvwprintw(sub,y,x,"%c",ch);
+                    i++;
+                    wrefresh(sub);
+                }
+            }
+        }
+
+        //Terminates the buffer
+        input_pass[i]='\0';
+
+        if(strcmp(input_pass,pass)==0){
+            wclear(sub);
+            wrefresh(sub);
+            delwin(sub);
+            return 1;
+        }
+        else{
+            wclear(sub);
+        }
+    }
+
+    keypad(sub,FALSE);
 }
 

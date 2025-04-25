@@ -5,7 +5,11 @@
 
 #include "global.h"
 
-//Generate admin screen
+/* @date_added: 04/10/2025
+ * @return_type: void
+ * @params: void
+ * @description: Makes a new window for admin screen
+ */
 void admin_scr(void){
     int height,width;
     getmaxyx(stdscr,height,width);
@@ -22,7 +26,6 @@ void admin_scr(void){
 
     char exit[]="[X] Exit";
     mvwprintw(win,height-4,(window_width-strlen(exit))/2,"%s",exit);
-
 
     status_bar(win,"Admin");
 

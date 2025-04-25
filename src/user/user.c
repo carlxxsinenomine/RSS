@@ -5,7 +5,11 @@
 
 #include "global.h"
 
-//Generate user screen
+/* @date_added: 04/15/2025
+ * @return_type: void
+ * @params: void
+ * @description: Makes a new window for user screen
+ */
 void user_scr(void){
     int height,width;
     getmaxyx(stdscr,height,width);
