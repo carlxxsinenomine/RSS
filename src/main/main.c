@@ -6,7 +6,7 @@
 #include "global.h"
 
 //Function initialization
-int auth(WINDOW *win,char pass[]){
+int auth(WINDOW *win,char pass[]);
 
 /* @date_added: 04/10/2025
  * @return_type: int
