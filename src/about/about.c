@@ -43,10 +43,10 @@ void about_scr(void){
         "Authors:",
         "",
         "Margarata, Sean Eric",
-        "Muñoz, Carl Johannes",
+        "Munoz, Carl Johannes",
         "Penetrante, Ethaniel James",
         "Santos, Gebhel Anselm",
-        "Zuñiga, Jay Mark"
+        "Zuniga, Jay Mark"
     };
 
     int content_row_size=sizeof(about_content)/sizeof(about_content[0]);
