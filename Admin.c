@@ -297,6 +297,7 @@ void _saveLastChanges(struct Buildings *current) {
     }
     fclose(changesPTR);
 }
+
 // void printLastChanges(struct Buildings *building) {}
 
 // void editRoomSchedule(struct Rooms *room) {}
@@ -308,7 +309,6 @@ void _saveLastChanges(struct Buildings *current) {
 
 void deleteRoomSchedule(struct Rooms *room) {
     int currentRoomNumber = room->roomNumber;
-
     printf("Room Number: %d\n", currentRoomNumber);
     printf("Enter Row to delete: ");
 
@@ -622,6 +622,7 @@ int main() {
             break;
         case 'd':
             _saveLastChanges(selectedBuilding);
+            printSelectedRoom(selectedRoom);
             deleteRoomSchedule(selectedRoom);
             _saveCurrentChanges(selectedBuilding);
             break;
