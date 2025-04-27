@@ -233,16 +233,18 @@ void _saveCurrentChanges(struct Buildings *current) {
     char strBuildingNumber[5];
     sprintf(strBuildingNumber, "%d", current->buildingNumber);
     char dirCurrent[125] = "./current/bld";
-    strcpy(dirCurrent, strBuildingNumber);
-    strcpy(dirCurrent, ".txt");
-    
+    strcat(dirCurrent, strBuildingNumber);
+    strcat(dirCurrent, ".txt");
+
+    printf("\n\n%s\n\n", dirCurrent);
     savePTR = fopen(dirCurrent, "wt");
+
     fprintf(savePTR, "Building No: %d\n", current->buildingNumber);
     fprintf(savePTR, "Max Rooms: %d\n\n", current->maxRooms);
 
     struct Rooms *room = current->head;
-    while(room!=null) {
-        fprinf(savePTR, "Room: %d\n", room->roomNumber);
+    while(room!=NULL) {
+        fprintf(savePTR, "Room: %d\n", room->roomNumber);
         for(int i=0; i < room->scheduleCount; i++) {
             int dayIndex=0;
             for (int index = 0; index < MAX_DAYS; index++) {
@@ -257,6 +259,7 @@ void _saveCurrentChanges(struct Buildings *current) {
         fprintf(savePTR, "\n");
         room = room->next;
     }
+    fclose(savePTR);
 }
 
 void _saveLastChanges(struct Buildings *current) {
@@ -267,16 +270,17 @@ void _saveLastChanges(struct Buildings *current) {
     int maxRooms = current->maxRooms;
     sprintf(strBuildingNumber, "%d", buildingNumber);
     char dirChanges[125] = "./last_changes/last_changes_bld";
-    strcpy(dirChanges, strBuildingNumber);
-    strcpy(dirChanges, ".txt");
+    strcat(dirChanges, strBuildingNumber);
+    strcat(dirChanges, ".txt");
+    printf("\n\n%s\n\n", dirChanges);
 
     changesPTR = fopen(dirChanges, "wt");
     fprintf(changesPTR, "Building No: %d\n", buildingNumber);
     fprintf(changesPTR, "Max Rooms: %d\n\n", maxRooms);
 
     struct Rooms *room = current->head;
-    while(room!=null) {
-        fprinf(changesPTR, "Room: %d\n", room->roomNumber);
+    while(room!=NULL) {
+        fprintf(changesPTR, "Room: %d\n", room->roomNumber);
         for(int i=0; i < room->scheduleCount; i++) {
             int dayIndex=0;
             for (int index = 0; index < MAX_DAYS; index++) {
@@ -291,6 +295,7 @@ void _saveLastChanges(struct Buildings *current) {
         fprintf(changesPTR, "\n");
         room = room->next;
     }
+    fclose(changesPTR);
 }
 // void printLastChanges(struct Buildings *building) {}
 
@@ -408,27 +413,31 @@ void addRoomSchedule(struct Rooms* room) {
         }
     }
 
-    int isAM = (firstHalf[strlen(firstHalf) - 2] == 'a') ? 1 : 0; // 1 if AM 0 if PM
-    printf("isAm: %d\n", isAM);
+    // Below this shit are buggy ass error handling, will improve later
+    int isFAM = (firstHalf[strlen(firstHalf) - 2] == 'a') ? 1 : 0; // 1 if AM 0 if PM
+    int isSAM = (secondHalf[strlen(secondHalf) - 2] == 'a') ? 1 : 0; // 1 if AM 0 if PM
+
+    printf("isfAm: %d\n", isFAM);
+    printf("issAm: %d\n", isSAM);
+
+    
     if(firstHalf[strlen(firstHalf) - 2] == secondHalf[strlen(secondHalf) - 2]) { 
-        if((isAM && SHI < FHI) || (!isAM && SHI < FHI)) { // if it's AM or PM and Second half is higher than first half then error
+        if(SHI < FHI) { // if it's AM or PM and Second half is higher than first half then error
             printf("3Invalid time values, Please try again\n");
             addRoomSchedule(room);
         }
     }
     // HH:mm; if HH if over 12 then error(this aint military time bruv), if HH is less than 6 then error there's no way someone's class starts at 5
     // HH:mm; if HH if over 10(cause u cant have classes at 11 en't u?) or less than 1 then error(this aint military time bruv)
-    if(isAM) {
+    if(isFAM && isSAM) {
         if(FHI > 12 || FHI < 6 || SHI > 12 || SHI < 6) { 
             printf("1Invalid time values, please try again\n");
             addRoomSchedule(room);
         }
-    } else {
-        if(FHI > 10 || FHI < 1 || SHI > 10 || SHI < 1) { 
-            if(isAM) {
-                printf("11Invalid time values, please try again\n");
-                addRoomSchedule(room);
-            }
+    } else if(!isFAM && !isSAM) {
+        if (FHI > 10 || FHI < 1 || SHI > 10 || SHI < 1) {
+            printf("11Invalid time values, please try again\n");
+            addRoomSchedule(room);
         }
     }
 
@@ -529,6 +538,7 @@ int main() {
     char line[100];
     char buildingText[100];
     int currentRoom = 0; // Room 1, or index zero
+    char option;
 
     LOBPtr = fopen("./current/listOfBuildings.txt", "rt");
     if (LOBPtr == NULL) {
@@ -572,6 +582,9 @@ int main() {
         }
     }
 
+    fclose(CBPtr);
+
+
     // Sort each schedules per buildings and rooms
     struct Buildings *currentBuilding = bHead;
     while (currentBuilding != NULL) {
@@ -583,13 +596,10 @@ int main() {
         currentBuilding = currentBuilding->next;
     }
 
-    // For Printing
     while(1) {
-        char option;
         printf("\n\nChoose [a]dd Schedule, [d]elete Schedule, [e]dit Schedule, [p]rint Room Schedule, [q]uit: ");
-        scanf("%c", &option);
-
-        if(option == 'q') exit(1);
+        scanf(" %c", &option);
+        if(option == 'q') break;
 
         printBuildings();
         printf("Choose Building: \n");
@@ -606,17 +616,18 @@ int main() {
         // kulang pa ng edit
         switch (option) {
         case 'a':
+            _saveLastChanges(selectedBuilding);
             addRoomSchedule(selectedRoom);
+            _saveCurrentChanges(selectedBuilding);
             break;
         case 'd':
+            _saveLastChanges(selectedBuilding);
             deleteRoomSchedule(selectedRoom);
+            _saveCurrentChanges(selectedBuilding);
             break;
         case 'p':
             printSelectedRoom(selectedRoom);
         }
     }
-    
-    fclose(CBPtr);
-
     return 0;
 }
