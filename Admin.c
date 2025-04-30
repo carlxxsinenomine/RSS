@@ -35,6 +35,164 @@ struct Buildings {
 } *bHead=NULL, *bLast=NULL;
 
 char* DAYS[MAX_DAYS] = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday"};
+
+void printBuildings();
+void printRooms(struct Buildings *building);
+void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
+struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, int floor2max);
+struct Rooms* _loadRoom(int roomNumber, struct Buildings *currentBuilding);
+struct Rooms* selectRoom(int roomNumber, struct Rooms* head);
+struct Buildings* selectBuilding(int bNum);
+void printSelectedRoom(struct Rooms* room);
+void _saveCurrentChanges(struct Buildings *current);
+void _saveLastChanges(struct Buildings *current);
+void editRoomSchedule(struct Rooms *room);
+void printLastChanges(struct Buildings *building);
+void addRoom(struct Buildings *building);
+void addBuilding();
+void deleteRoomSchedule(struct Rooms *room);
+void upToLower(char word[10]);
+void addRoomSchedule(struct Rooms* room);
+void sortSchedules(struct Rooms* room);
+
+
+int main() {
+    // listOfBuildingsPointer, currentBuildingPointer
+    FILE *LOBPtr, *CBPtr;  
+
+    int bNumber, maxRooms, FFloorMax, SFloorMax;
+    char line[100];
+    char buildingText[100];
+    char option;
+
+    LOBPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "rt");
+    if (LOBPtr == NULL) {
+        printf("Error opening file");
+        return 1;
+    }
+
+    while(fgets(line, sizeof(line), LOBPtr)) {
+        // Stores the Building file name
+        sscanf(line, "%s", buildingText);
+        // printf("Current Building: %s\n", buildingText);
+        char dirChanges[50] = "./buildings/current_changes/";
+        strcat(dirChanges, buildingText);
+        CBPtr = fopen(dirChanges, "rt");
+        // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
+        // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
+        fgets(line, sizeof(line), CBPtr);
+        sscanf(line, "Building No: %d", &bNumber);
+
+        fgets(line, sizeof(line), CBPtr);
+        sscanf(line, "Max Rooms: %d", &maxRooms);
+
+        fgets(line, sizeof(line), CBPtr);
+        sscanf(line, "FFloor Max: %d", &FFloorMax);
+
+        fgets(line, sizeof(line), CBPtr);
+        sscanf(line, "SFloor Max: %d", &SFloorMax);
+
+        printf("FLLORMAX: %d", FFloorMax);
+        printf("SLORMAX: %d", SFloorMax);
+
+        // fgets(line, sizeof(line), CBPtr);
+        // sscanf(line, "Programs: %s")
+        int roomsCount = 0; // for checking purposes;
+        struct Buildings *building = _loadBuildings(bNumber, maxRooms, FFloorMax, SFloorMax);
+        struct Rooms *room = NULL;
+        while (fgets(line, sizeof(line), CBPtr)) {
+            // If Room: is present on the string
+            if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
+                roomsCount++;
+                if(roomsCount >= building->maxRooms) {
+                    // Error sumobra sa maxRoom ung room na nareread from file
+                    break;
+                }
+                int currentRoom = 0;
+                sscanf(line, "Room: %d", &currentRoom);
+                room = _loadRoom(currentRoom, building);
+                continue;
+            }
+
+            if (strlen(line) <= 1)
+                continue; // If empty line skip.
+
+            int dayIndex;
+            char courseCode[21], time[21];
+
+            if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
+                if (room)
+                    addSchedule(room, dayIndex, courseCode, time);
+        }
+    }
+
+    fclose(CBPtr);
+
+
+    // Sort each schedules per buildings and rooms
+    struct Buildings *currentBuilding = bHead;
+    while (currentBuilding != NULL) {
+        struct Rooms *currentRoom = currentBuilding->head;
+        while (currentRoom != NULL) {
+            sortSchedules(currentRoom);
+            currentRoom = currentRoom->next;
+        }
+        currentBuilding = currentBuilding->next;
+    }
+
+    while(1) {
+        printf("\n\nChoose [a]dd Schedule, [d]elete Schedule, [e]dit Schedule, [p]rint Room Schedule, [q]uit: ");
+        scanf(" %c", &option);
+        if(option == 'q') break;
+
+        printBuildings();
+        printf("Choose Building: \n");
+        int bNum;
+        scanf("%d", &bNum);
+        struct Buildings* selectedBuilding = selectBuilding(bNum);
+        if(option == 'l') {
+            printLastChanges(selectedBuilding);
+            continue;
+        }
+        printRooms(selectedBuilding);
+        int roomOfChoice;
+        struct Rooms* selectedRoom = NULL;
+        if(option != 'r') {
+            printf("Enter Room of choice: ");
+            scanf("%d", &roomOfChoice);
+             selectedRoom = selectRoom(roomOfChoice, selectedBuilding->head);
+        }
+
+        // kulang pa ng edit
+        switch (option) {
+            case 'a': // Add Room Sched
+                _saveLastChanges(selectedBuilding);
+                addRoomSchedule(selectedRoom);
+                _saveCurrentChanges(selectedBuilding);
+                break;
+            case 'd': // Delete Room Sched
+                _saveLastChanges(selectedBuilding);
+                printSelectedRoom(selectedRoom);
+                deleteRoomSchedule(selectedRoom);
+                _saveCurrentChanges(selectedBuilding);
+                break;
+            case 'p': // Print Room Scheds
+                printSelectedRoom(selectedRoom);
+                break;
+            case 'e': // Edit Room Sched
+                _saveLastChanges(selectedBuilding);
+                editRoomSchedule(selectedRoom);
+                _saveCurrentChanges(selectedBuilding);
+                break;
+            case 'r': // Add Room
+                _saveLastChanges(selectedBuilding);
+                addRoom(selectedBuilding);
+                _saveCurrentChanges(selectedBuilding);
+        }
+    }
+    return 0;
+}
+
 /**
  * @date_added: 4/16
  * @return_type: void
@@ -502,7 +660,7 @@ void addRoom(struct Buildings *building) {
         currentRoom = currentRoom->next;
     }
 }
-//TODO: edit info ng bld.txt
+// void editBuilding() {}
 
 void addBuilding() {
     int buildingNumber;
@@ -811,141 +969,4 @@ void sortSchedules(struct Rooms* room) {
             }
         }
     }
-}
-
-int main() {
-    // listOfBuildingsPointer, currentBuildingPointer
-    FILE *LOBPtr, *CBPtr;  
-
-    int bNumber, maxRooms, FFloorMax, SFloorMax;
-    char line[100];
-    char buildingText[100];
-    char option;
-
-    LOBPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "rt");
-    if (LOBPtr == NULL) {
-        printf("Error opening file");
-        return 1;
-    }
-
-    while(fgets(line, sizeof(line), LOBPtr)) {
-        // Stores the Building file name
-        sscanf(line, "%s", buildingText);
-        // printf("Current Building: %s\n", buildingText);
-        char dirChanges[50] = "./buildings/current_changes/";
-        strcat(dirChanges, buildingText);
-        CBPtr = fopen(dirChanges, "rt");
-        // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
-        // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
-        fgets(line, sizeof(line), CBPtr);
-        sscanf(line, "Building No: %d", &bNumber);
-
-        fgets(line, sizeof(line), CBPtr);
-        sscanf(line, "Max Rooms: %d", &maxRooms);
-
-        fgets(line, sizeof(line), CBPtr);
-        sscanf(line, "FFloor Max: %d", &FFloorMax);
-
-        fgets(line, sizeof(line), CBPtr);
-        sscanf(line, "SFloor Max: %d", &SFloorMax);
-
-        printf("FLLORMAX: %d", FFloorMax);
-        printf("SLORMAX: %d", SFloorMax);
-
-        // fgets(line, sizeof(line), CBPtr);
-        // sscanf(line, "Programs: %s")
-        int roomsCount = 0; // for checking purposes;
-        struct Buildings *building = _loadBuildings(bNumber, maxRooms, FFloorMax, SFloorMax);
-        struct Rooms *room = NULL;
-        while (fgets(line, sizeof(line), CBPtr)) {
-            // If Room: is present on the string
-            if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
-                roomsCount++;
-                if(roomsCount >= building->maxRooms) {
-                    // Error sumobra sa maxRoom ung room na nareread from file
-                    break;
-                }
-                int currentRoom = 0;
-                sscanf(line, "Room: %d", &currentRoom);
-                room = _loadRoom(currentRoom, building);
-                continue;
-            }
-
-            if (strlen(line) <= 1)
-                continue; // If empty line skip.
-
-            int dayIndex;
-            char courseCode[21], time[21];
-
-            if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
-                if (room)
-                    addSchedule(room, dayIndex, courseCode, time);
-        }
-    }
-
-    fclose(CBPtr);
-
-
-    // Sort each schedules per buildings and rooms
-    struct Buildings *currentBuilding = bHead;
-    while (currentBuilding != NULL) {
-        struct Rooms *currentRoom = currentBuilding->head;
-        while (currentRoom != NULL) {
-            sortSchedules(currentRoom);
-            currentRoom = currentRoom->next;
-        }
-        currentBuilding = currentBuilding->next;
-    }
-
-    while(1) {
-        printf("\n\nChoose [a]dd Schedule, [d]elete Schedule, [e]dit Schedule, [p]rint Room Schedule, [q]uit: ");
-        scanf(" %c", &option);
-        if(option == 'q') break;
-
-        printBuildings();
-        printf("Choose Building: \n");
-        int bNum;
-        scanf("%d", &bNum);
-        struct Buildings* selectedBuilding = selectBuilding(bNum);
-        if(option == 'l') {
-            printLastChanges(selectedBuilding);
-            continue;
-        }
-        printRooms(selectedBuilding);
-        int roomOfChoice;
-        struct Rooms* selectedRoom = NULL;
-        if(option != 'r') {
-            printf("Enter Room of choice: ");
-            scanf("%d", &roomOfChoice);
-             selectedRoom = selectRoom(roomOfChoice, selectedBuilding->head);
-        }
-
-        // kulang pa ng edit
-        switch (option) {
-            case 'a': // Add Room Sched
-                _saveLastChanges(selectedBuilding);
-                addRoomSchedule(selectedRoom);
-                _saveCurrentChanges(selectedBuilding);
-                break;
-            case 'd': // Delete Room Sched
-                _saveLastChanges(selectedBuilding);
-                printSelectedRoom(selectedRoom);
-                deleteRoomSchedule(selectedRoom);
-                _saveCurrentChanges(selectedBuilding);
-                break;
-            case 'p': // Print Room Scheds
-                printSelectedRoom(selectedRoom);
-                break;
-            case 'e': // Edit Room Sched
-                _saveLastChanges(selectedBuilding);
-                editRoomSchedule(selectedRoom);
-                _saveCurrentChanges(selectedBuilding);
-                break;
-            case 'r': // Add Room
-                _saveLastChanges(selectedBuilding);
-                addRoom(selectedBuilding);
-                _saveCurrentChanges(selectedBuilding);
-        }
-    }
-    return 0;
 }
