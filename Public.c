@@ -341,12 +341,11 @@ int filterCollegeProgram(char *courseCode, char *college_program) {
 }
 
 //date added: 04/30
-//checks if user input is valid
-char collegeProgCheck(char *college_program){
-    if(college_program != "cs"||"bscs"||"it"||"bsit"||
-        "chem"||"bschem"||"bio"||"bsbio"||"met"||"bsmet"){
-            printf("invalid input.");
-            exit(0);
+//checks if user input is a char and valid
+char collegeProgCheck(char *college_program) {
+    if (!isalpha((unsigned char)college_program[0])) {
+        printf("Invalid input.\n");
+        exit(1);
     }
-    return 0;
+    return college_program[0];
 }
