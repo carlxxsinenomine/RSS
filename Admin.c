@@ -664,17 +664,37 @@ void addRoom(struct Buildings *building) {
 }
 // edit specific building info e.g. maxrooms, buildingnumber, etc
 void editBuilding(struct Buildings *building) {
+    int currentBNumber = building->buildingNumber; // for error handling puruposes
     char option;
     printf("What do you want to edit: [b]uildingNumber, [m]axRooms, [F]FloorMax, [S]FloorMax, [a]ll");
     scanf(" %c", &option);
 
     int newBuildingNumber, newMaxRooms, newFFloorMax, newSFloorMax;
+    struct Buildings *current = bHead; // will be used to traverse the linkedlist of Buildings structure
+
     switch (option) {
         case 'b':   
             printf("Enter new building number: ");
             scanf("%d", &newBuildingNumber);
             if(newBuildingNumber<1) return; // error negative value
+            if(newBuildingNumber == currentBNumber) {
+                printf("newBuildingNubmer is equal to the currentBNumber..do you want to [e]exit or [r]try");
+                char exitOrRetry;
+                scanf(" %c", &exitOrRetry);
+
+                if(exitOrRetry == 'e')
+                    return;
+                else
+                    editBuilding(building);
+            }
             //TODO: check if existing na building number
+            while(current!=NULL) {
+                if(newBuildingNumber == current->buildingNumber) {
+                    printf("Building Nubmer already existed\n");
+                    return;
+                }
+                current = current->next;
+            }
             building->buildingNumber = newBuildingNumber;
             break;
         case 'm':
@@ -699,7 +719,24 @@ void editBuilding(struct Buildings *building) {
             printf("Enter new building number: ");
             scanf("%d", &newBuildingNumber);
             if(newBuildingNumber<1) return; // error negative value
+            if(newBuildingNumber == currentBNumber) {
+                printf("newBuildingNubmer is equal to the currentBNumber..do you want to [e]exit or [r]try");
+                char exitOrRetry;
+                scanf(" %c", &exitOrRetry);
+
+                if(exitOrRetry == 'e')
+                    return;
+                else
+                    editBuilding(building);
+            }
             //TODO: check if existing na building number
+            while(current!=NULL) {
+                if(newBuildingNumber == current->buildingNumber) {
+                    printf("Building Nubmer already existed\n");
+                    return;
+                }
+                current = current->next;
+            }
             building->buildingNumber = newBuildingNumber;
             printf("Enter new maxRooms count: ");
             scanf("%d", &newMaxRooms);
