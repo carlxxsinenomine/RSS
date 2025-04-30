@@ -24,11 +24,23 @@ void user_scr(void){
 
     wborder(win,'|','|','-','-','+','+','+','+');
 
-    char exit[]="[X] Exit";
-    mvwprintw(win,height-4,(window_width-strlen(exit))/2,"%s",exit);
-
+    char exit_x[]="[X] Exit";
+    mvwprintw(win,height-4,(window_width-strlen(exit_x))/2,"%s",exit_x);
 
     status_bar(win,"User");
+
+    const char *bldng[]={
+	    " ___  _  _ _ _    ___  _ _  _ ____ ____  ", 
+	    "|__] |  | | |    |  \\ | |\\ | | __ [__ ",  
+	    "|__] |__| | |___ |__/ | | \\| |__] ___] ",
+    };
+
+    int bldng_row_size=sizeof(bldng)/sizeof(bldng[0]);
+    for(int i=0;i<bldng_row_size;i++){
+        int len=strlen(bldng[i]);
+        int tab=(window_width-len)/2;
+        mvwprintw(win,i+3,tab,"%s",bldng[i]);
+    }
 
     int ch=0;
 

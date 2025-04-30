@@ -28,6 +28,8 @@ struct Buildings {
     int maxRooms;
     int FFloorMax;
     int SFloorMax;
+    int FFloorMax;
+    int SFloorMax;
     struct Rooms* head;
     struct Rooms* last;
     struct Buildings *prev;
@@ -275,6 +277,7 @@ void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const
  * @description: Creates a linked list of Building
  */
 struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, int floor2max) {
+struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, int floor2max) {
     struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
     if (!newBuilding) { // if new building is NULL
         printf("Memory allocation failed.");
@@ -283,6 +286,8 @@ struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, 
 
     newBuilding->buildingNumber = buildingNumber;
     newBuilding->maxRooms = maxRms;
+    newBuilding->FFloorMax = floor1max;
+    newBuilding->SFloorMax = floor2max;
     newBuilding->FFloorMax = floor1max;
     newBuilding->SFloorMax = floor2max;
     newBuilding->head = NULL;
@@ -306,6 +311,7 @@ struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, 
  * @parameter: Accepts an INt, Buildings Structure
  * @description: Creates a linked list of Rooms inside a structure of Building
  */
+struct Rooms* _loadRoom(int roomNumber, struct Buildings *currentBuilding) {
 struct Rooms* _loadRoom(int roomNumber, struct Buildings *currentBuilding) {
 
     struct Rooms* newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
@@ -405,12 +411,16 @@ void _saveCurrentChanges(struct Buildings *current) {
     char strBuildingNumber[5];
     sprintf(strBuildingNumber, "%d", current->buildingNumber);
     char dirCurrent[125] = "./buildings/current_changes/bld";
+    char dirCurrent[125] = "./buildings/current_changes/bld";
     strcat(dirCurrent, strBuildingNumber);
     strcat(dirCurrent, ".txt");
 
     savePTR = fopen(dirCurrent, "wt");
 
     fprintf(savePTR, "Building No: %d\n", current->buildingNumber);
+    fprintf(savePTR, "Max Rooms: %d\n", current->maxRooms);
+    fprintf(savePTR, "FFloor Max: %d\n", current->FFloorMax);
+    fprintf(savePTR, "SFloor Max: %d\n\n", current->SFloorMax);
     fprintf(savePTR, "Max Rooms: %d\n", current->maxRooms);
     fprintf(savePTR, "FFloor Max: %d\n", current->FFloorMax);
     fprintf(savePTR, "SFloor Max: %d\n\n", current->SFloorMax);
@@ -442,11 +452,16 @@ void _saveLastChanges(struct Buildings *current) {
     int maxRooms = current->maxRooms;
     sprintf(strBuildingNumber, "%d", buildingNumber);
     char dirChanges[125] = "./buildings/last_changes/last_changes_bld";
+    char dirChanges[125] = "./buildings/last_changes/last_changes_bld";
     strcat(dirChanges, strBuildingNumber);
     strcat(dirChanges, ".txt");
 
     changesPTR = fopen(dirChanges, "wt");
     fprintf(changesPTR, "Building No: %d\n", buildingNumber);
+    fprintf(changesPTR, "Max Rooms: %d\n", maxRooms);
+    fprintf(changesPTR, "FFloor Max: %d\n", current->FFloorMax);
+    fprintf(changesPTR, "SFloor Max: %d\n\n", current->SFloorMax);
+
     fprintf(changesPTR, "Max Rooms: %d\n", maxRooms);
     fprintf(changesPTR, "FFloor Max: %d\n", current->FFloorMax);
     fprintf(changesPTR, "SFloor Max: %d\n\n", current->SFloorMax);
@@ -1015,6 +1030,7 @@ void addRoomSchedule(struct Rooms* room) {
     printf("isfAm: %d\n", isFAM);
     printf("issAm: %d\n", isSAM);
 
+
     if(firstHalf[strlen(firstHalf) - 2] == secondHalf[strlen(secondHalf) - 2]) { 
         if(SHI < FHI) { // if it's AM or PM and Second half is higher than first half then error
             printf("3Invalid time values, Please try again\n");
@@ -1054,6 +1070,7 @@ void addRoomSchedule(struct Rooms* room) {
                room->schedules[i].courseCode,
                room->schedules[i].time);
 }
+
 
 // Sort Schedules using the bubble sort Algo
 void sortSchedules(struct Rooms* room) {

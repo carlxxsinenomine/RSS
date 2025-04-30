@@ -5,7 +5,7 @@
 
 #define MAXCOL 3
 #define MAX_SCHEDULES 20
-#define MAX_DAYS 5
+#define MAX_DAYS 6
 
 struct Schedule {
     char day[10];
@@ -31,7 +31,7 @@ struct Building {
     struct Building *prev;
 } *bldgHead = NULL, *bldgLast = NULL;
 
-const char* DAYS[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
+const char* DAYS[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 void printRooms();
 void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
@@ -45,6 +45,7 @@ void printfSelectedBuilding(struct Building *building);
 void upToLower(char word[10]);
 void printBuildingNumber();
 int filterCollegeProgram(char *courseCode, char *college_program);
+char collegeProgCheck(char *college_program);
 
 int main(void) {
   
@@ -57,7 +58,7 @@ int main(void) {
     head = NULL;
     last = NULL;
     
-    listOfBuildingsPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "rt");
+    listOfBuildingsPtr = fopen("./buildings/listOfBuildings.txt", "rt");
 
     if (listOfBuildingsPtr == NULL) {
         perror("Error opening file");
@@ -66,11 +67,9 @@ int main(void) {
 
     // while loop na nagreread line by line from the listOfBuildings.txt
     while (fscanf(listOfBuildingsPtr, "%s", bLine) != EOF) {
-        // printf("Current Building: %s\n", buildingText);
-        char dirChanges[50] = "./buildings/current_changes/";
-        strcat(dirChanges, bLine);
-        fptr = fopen(dirChanges, "rt");
-    
+       char dirC[50] = "./buildings/";
+       strcat(dirC, bLine);
+       fptr = fopen(dirC, "rt");
 
         if(fptr == NULL){
             perror("Error handling file");
@@ -112,9 +111,10 @@ int main(void) {
    
     printBuildingNumber();
     char college_program[10];
-    printf("Enter your college program: ");
+    printf("Enter your college program (e.g, it, cs): ");
     scanf("%s", college_program);
     upToLower(college_program);
+    collegeProgCheck(college_program);
 
     int buildingChoice;
     printf("Enter building number to view available rooms: ");
@@ -145,7 +145,6 @@ int main(void) {
     case 'n':
         printSelectedRoom(selectedBuilding, selectedRoom, NULL);
         break;
-    
     default:
         printf("Invalid input");
         break;
@@ -277,9 +276,6 @@ struct Rooms* createRoom(struct Building *_building, int roomNumber) {
     newRoom->scheduleCount = 0;
     newRoom->next = NULL;
     newRoom->prev = NULL;
-    // strcpy(newRoom->schedule[roomNumber-1][0], day);
-    // strcpy(newRoom->schedule[roomNumber-1][1], courseCode);
-    // strcpy(newRoom->schedule[roomNumber-1][2], time);
 
     if (_building->head == NULL) {
         _building->head = _building->last = newRoom; // set last equal to newRoom and head equal to last
@@ -342,4 +338,15 @@ void upToLower(char word[10]) {
 //date edited: 04/24
 int filterCollegeProgram(char *courseCode, char *college_program) {
     return strstr(courseCode, college_program) != NULL;
+}
+
+//date added: 04/30
+//checks if user input is valid
+char collegeProgCheck(char *college_program){
+    if(college_program != "cs"||"bscs"||"it"||"bsit"||
+        "chem"||"bschem"||"bio"||"bsbio"||"met"||"bsmet"){
+            printf("invalid input.");
+            exit(0);
+    }
+    return 0;
 }
