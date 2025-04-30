@@ -26,6 +26,8 @@ struct Rooms {
 struct Buildings {
     int buildingNumber;
     int maxRooms;
+    int FFloorMax;
+    int SFloorMax;
     struct Rooms* head;
     struct Rooms* last;
     struct Buildings *prev;
@@ -67,12 +69,6 @@ void printRooms(struct Buildings *building) {
     printf("Room List:\n");
     while (current != NULL) {
         printf("Room %d:\n", current->roomNumber);
-        // for (int i = 0; i < current->scheduleCount; i++) {
-        //     printf("  %s, %s at %s\n", 
-        //            current->schedules[i].day,
-        //            current->schedules[i].courseCode,
-        //            current->schedules[i].time);
-        // }
         current = current->next;
     }
 }
@@ -104,7 +100,7 @@ void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const
  * @parameter: Accepts an Int
  * @description: Creates a linked list of Building
  */
-struct Buildings* createBuilding(int buildingNumber, int maxRms) {
+struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, int floor2max) {
     struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
     if (!newBuilding) { // if new building is NULL
         printf("Memory allocation failed.");
@@ -113,6 +109,8 @@ struct Buildings* createBuilding(int buildingNumber, int maxRms) {
 
     newBuilding->buildingNumber = buildingNumber;
     newBuilding->maxRooms = maxRms;
+    newBuilding->FFloorMax = floor1max;
+    newBuilding->SFloorMax = floor2max;
     newBuilding->head = NULL;
     newBuilding->last = NULL;
     newBuilding->next = NULL;
@@ -134,7 +132,7 @@ struct Buildings* createBuilding(int buildingNumber, int maxRms) {
  * @parameter: Accepts an INt, Buildings Structure
  * @description: Creates a linked list of Rooms inside a structure of Building
  */
-struct Rooms* createRoom(int roomNumber, struct Buildings *currentBuilding) {
+struct Rooms* _loadRoom(int roomNumber, struct Buildings *currentBuilding) {
 
     struct Rooms* newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
 
@@ -236,11 +234,12 @@ void _saveCurrentChanges(struct Buildings *current) {
     strcat(dirCurrent, strBuildingNumber);
     strcat(dirCurrent, ".txt");
 
-    printf("\n\n%s\n\n", dirCurrent);
     savePTR = fopen(dirCurrent, "wt");
 
     fprintf(savePTR, "Building No: %d\n", current->buildingNumber);
-    fprintf(savePTR, "Max Rooms: %d\n\n", current->maxRooms);
+    fprintf(savePTR, "Max Rooms: %d\n", current->maxRooms);
+    fprintf(savePTR, "FFloor Max: %d\n", current->FFloorMax);
+    fprintf(savePTR, "SFloor Max: %d\n\n", current->SFloorMax);
 
     struct Rooms *room = current->head;
     while(room!=NULL) {
@@ -253,7 +252,6 @@ void _saveCurrentChanges(struct Buildings *current) {
                     break;
                 }
             }
-
             fprintf(savePTR, "%d, %s, %s\n", dayIndex, room->schedules->courseCode, room->schedules->time);
         }
         fprintf(savePTR, "\n");
@@ -272,11 +270,13 @@ void _saveLastChanges(struct Buildings *current) {
     char dirChanges[125] = "./buildings/last_changes/last_changes_bld";
     strcat(dirChanges, strBuildingNumber);
     strcat(dirChanges, ".txt");
-    printf("\n\n%s\n\n", dirChanges);
 
     changesPTR = fopen(dirChanges, "wt");
     fprintf(changesPTR, "Building No: %d\n", buildingNumber);
-    fprintf(changesPTR, "Max Rooms: %d\n\n", maxRooms);
+    fprintf(changesPTR, "Max Rooms: %d\n", maxRooms);
+    fprintf(changesPTR, "FFloor Max: %d\n", current->FFloorMax);
+    fprintf(changesPTR, "SFloor Max: %d\n\n", current->SFloorMax);
+
 
     struct Rooms *room = current->head;
     while(room!=NULL) {
@@ -308,7 +308,7 @@ void editRoomSchedule(struct Rooms *room) {
 
     struct Schedule *current = &room->schedules[rowToEdit];
     printf("%s, %s, %s\n", current->day, current->courseCode, current->time);
-    printf("What do you want to delete: [d]day, [c]oursecode, [t]ime");
+    printf("What do you want to delete: [d]day, [c]oursecode, [t]ime, [a]ll");
     char option;
     char day[20], coursecode[10], time[20];
     scanf(" %c", &option);
@@ -339,14 +339,113 @@ void editRoomSchedule(struct Rooms *room) {
             scanf("%s", time);
             scanf("%s", time);
     }
-
 }
 
 // void printLastChanges(struct Buildings *building) {}
 
-//void revertChanges() {}
+// void revertChanges() {}
 
-// void addRoom(struct Buildings *building) {}
+void addRoom(struct Buildings *building) {
+    // Check if room number is less than max
+    // struct Rooms* currentRoom = building->last;
+    // printf("Last Room no: %d\n\n\n", currentRoom->roomNumber);
+    int roomCount=0;
+    struct Rooms* currentRoom = building->head;
+    while(currentRoom != NULL) {
+        roomCount++;
+        currentRoom = currentRoom->next;
+    }
+    if(roomCount >= building->maxRooms) {
+        // Then nde na pedeng magadd ng room
+        return;
+    }
+
+    // Proceed if pede pa magadd ng room
+    printf("Enter Room Number: (e.g. 101, 201)");
+    int roomNumber;
+    scanf("%d", &roomNumber);
+    
+    // To check if roomNumber already exist
+    while(currentRoom != NULL) {
+        if(roomNumber == currentRoom->roomNumber) {
+            // Then room already exist
+            // ask user if usto pa magcontinue if yes recursion
+            // call the same function again
+            addRoom(building);
+        }
+        currentRoom = currentRoom->next;
+    }
+
+    // To check kung ilan na ang rooms sa FirstFloor and SecondFloor
+    int FFloorCount=0;
+    int SFloorCount=0;
+    while(currentRoom != NULL) {
+        if(currentRoom->roomNumber < 200) 
+            FFloorCount++;
+        else 
+            SFloorCount++;
+
+        if(FFloorCount >= building->FFloorMax) {
+            // then max na ang count ng FirstFloor
+            //ask user if gusto panya ulitin then call the function again
+            addRoom(building);
+        } else if(SFloorCount >= building->SFloorMax) {
+            // then max na ang count ng SecFloor
+            //ask user if gusto panya ulitin then call the function again
+            addRoom(building);
+        }
+        currentRoom = currentRoom->next;
+    }
+    int isFFLoor = (roomNumber < 200) ? 1 : 0;
+
+    if(isFFLoor&& (roomNumber > (building->FFloorMax + 100) || roomNumber < 101)) {
+        // error
+        printf("Error din to.\n");
+        return;
+    }
+
+    if(!isFFLoor&& (roomNumber > (building->FFloorMax + 200) || roomNumber < 201)) {
+        // error
+        printf("Error na.\n");
+        return;
+    }
+    
+    struct Rooms *newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
+
+    newRoom->roomNumber = roomNumber;
+    newRoom->scheduleCount = 0;
+    newRoom->next = NULL;
+    newRoom->prev = NULL;
+
+    // Insert the the end if roomNumber is greater than last of room
+    if(roomNumber > building->last->roomNumber) {
+        building->last->next = newRoom; 
+        newRoom->prev = building->last;
+        return;
+    }
+
+    // Insert front if roomNumber less than head of room
+    if(roomNumber < building->head->roomNumber) {
+        newRoom->next = building->head; // next ng newroom naka point sa kasunod na list ng currentRoom
+        building->head->prev = newRoom; // prev ng kasunod ng currentRoom nakapoint sa newRoom
+        building->head = newRoom;
+        return;
+    }
+
+    currentRoom = building->head;
+    while(currentRoom != NULL) {
+        if(roomNumber < currentRoom->next->roomNumber) {
+            newRoom->next = currentRoom->next; // next ng newroom naka point sa kasunod na list ng currentRoom
+            currentRoom->next->prev = newRoom; // prev ng kasunod ng currentRoom nakapoint sa newRoom
+
+            newRoom->prev = currentRoom;
+            currentRoom->next = newRoom;
+            return;
+        }
+        currentRoom = currentRoom->next;
+    }
+}
+//TODO: edit info ng bld.txt
 
 // void addBuilding() {}
 
@@ -464,7 +563,6 @@ void addRoomSchedule(struct Rooms* room) {
     printf("isfAm: %d\n", isFAM);
     printf("issAm: %d\n", isSAM);
 
-    
     if(firstHalf[strlen(firstHalf) - 2] == secondHalf[strlen(secondHalf) - 2]) { 
         if(SHI < FHI) { // if it's AM or PM and Second half is higher than first half then error
             printf("3Invalid time values, Please try again\n");
@@ -578,7 +676,7 @@ int main() {
     // listOfBuildingsPointer, currentBuildingPointer
     FILE *LOBPtr, *CBPtr;  
 
-    int bNumber, maxRooms;
+    int bNumber, maxRooms, FFloorMax, SFloorMax;
     char line[100];
     char buildingText[100];
     int currentRoom = 0; // Room 1, or index zero
@@ -601,18 +699,34 @@ int main() {
         // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
         fgets(line, sizeof(line), CBPtr);
         sscanf(line, "Building No: %d", &bNumber);
+
         fgets(line, sizeof(line), CBPtr);
         sscanf(line, "Max Rooms: %d", &maxRooms);
+
+        fgets(line, sizeof(line), CBPtr);
+        sscanf(line, "FFloor Max: %d", &FFloorMax);
+
+        fgets(line, sizeof(line), CBPtr);
+        sscanf(line, "SFloor Max: %d", &SFloorMax);
+
+        printf("FLLORMAX: %d", FFloorMax);
+        printf("SLORMAX: %d", SFloorMax);
+
         // fgets(line, sizeof(line), CBPtr);
         // sscanf(line, "Programs: %s")
-
-        struct Buildings *building = createBuilding(bNumber, maxRooms);
+        int roomsCount = 0; // for checking purposes;
+        struct Buildings *building = _loadBuildings(bNumber, maxRooms, FFloorMax, SFloorMax);
         struct Rooms *room = NULL;
         while (fgets(line, sizeof(line), CBPtr)) {
             // If Room: is present on the string
             if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
+                roomsCount++;
+                if(roomsCount >= building->maxRooms) {
+                    // Error sumobra sa maxRoom ung room na nareread from file
+                    break;
+                }
                 sscanf(line, "Room: %d", &currentRoom);
-                room = createRoom(currentRoom, building);
+                room = _loadRoom(currentRoom, building);
                 continue;
             }
 
@@ -655,30 +769,39 @@ int main() {
     
         printRooms(selectedBuilding);
         int roomOfChoice;
-        printf("Enter Room of choice: ");
-        scanf("%d", &roomOfChoice);
-        struct Rooms* selectedRoom = selectRoom(roomOfChoice, selectedBuilding->head);
+        struct Rooms* selectedRoom = NULL;
+        if(option != 'r') {
+            printf("Enter Room of choice: ");
+            scanf("%d", &roomOfChoice);
+             selectedRoom = selectRoom(roomOfChoice, selectedBuilding->head);
+        }
+
 
         // kulang pa ng edit
         switch (option) {
-        case 'a':
-            _saveLastChanges(selectedBuilding);
-            addRoomSchedule(selectedRoom);
-            _saveCurrentChanges(selectedBuilding);
-            break;
-        case 'd':
-            _saveLastChanges(selectedBuilding);
-            printSelectedRoom(selectedRoom);
-            deleteRoomSchedule(selectedRoom);
-            _saveCurrentChanges(selectedBuilding);
-            break;
-        case 'p':
-            printSelectedRoom(selectedRoom);
-            break;
-        case 'e':
-            _saveLastChanges(selectedBuilding);
-            editRoomSchedule(selectedRoom);
-            _saveCurrentChanges(selectedBuilding);
+            case 'a': // Add Room Sched
+                _saveLastChanges(selectedBuilding);
+                addRoomSchedule(selectedRoom);
+                _saveCurrentChanges(selectedBuilding);
+                break;
+            case 'd': // Delete Room Sched
+                _saveLastChanges(selectedBuilding);
+                printSelectedRoom(selectedRoom);
+                deleteRoomSchedule(selectedRoom);
+                _saveCurrentChanges(selectedBuilding);
+                break;
+            case 'p': // Print Room Scheds
+                printSelectedRoom(selectedRoom);
+                break;
+            case 'e': // Edit Room Sched
+                _saveLastChanges(selectedBuilding);
+                editRoomSchedule(selectedRoom);
+                _saveCurrentChanges(selectedBuilding);
+                break;
+            case 'r': // Add Room
+                _saveLastChanges(selectedBuilding);
+                addRoom(selectedBuilding);
+                _saveCurrentChanges(selectedBuilding);
         }
     }
     return 0;
