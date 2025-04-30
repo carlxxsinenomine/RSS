@@ -232,7 +232,7 @@ void _saveCurrentChanges(struct Buildings *current) {
     FILE* savePTR;
     char strBuildingNumber[5];
     sprintf(strBuildingNumber, "%d", current->buildingNumber);
-    char dirCurrent[125] = "./current/bld";
+    char dirCurrent[125] = "./buildings/current_changes/bld";
     strcat(dirCurrent, strBuildingNumber);
     strcat(dirCurrent, ".txt");
 
@@ -269,7 +269,7 @@ void _saveLastChanges(struct Buildings *current) {
     int buildingNumber = current->buildingNumber;
     int maxRooms = current->maxRooms;
     sprintf(strBuildingNumber, "%d", buildingNumber);
-    char dirChanges[125] = "./last_changes/last_changes_bld";
+    char dirChanges[125] = "./buildings/last_changes/last_changes_bld";
     strcat(dirChanges, strBuildingNumber);
     strcat(dirChanges, ".txt");
     printf("\n\n%s\n\n", dirChanges);
@@ -300,13 +300,27 @@ void _saveLastChanges(struct Buildings *current) {
 
 // void printLastChanges(struct Buildings *building) {}
 
-// void editRoomSchedule(struct Rooms *room) {}
+//void revertChanges() {}
+
+void editRoomSchedule(struct Rooms *room) {
+    int rowToEdit;
+    for(int row=0; row < room->scheduleCount; row++) {
+        printf("%d. %s, %s %s\n", row, room->schedules[row].day, room->schedules[row].courseCode, room->schedules[row].time);
+    }
+    printf("Enter Row to edit");
+    scanf("%d", &rowToEdit);
+
+    struct Schedule *current = &room->schedules[rowToEdit];
+    printf("%s, %s, %s\n", current->day, current->courseCode, current->time);
+    printf("What do you want to delete: ")
+
+}
 
 // void addRoom(struct Buildings *building) {}
 
 // void addBuilding() {}
 
-
+//  show aba
 void deleteRoomSchedule(struct Rooms *room) {
     int currentRoomNumber = room->roomNumber;
     printf("Room Number: %d\n", currentRoomNumber);
@@ -540,7 +554,7 @@ int main() {
     int currentRoom = 0; // Room 1, or index zero
     char option;
 
-    LOBPtr = fopen("./current/listOfBuildings.txt", "rt");
+    LOBPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "rt");
     if (LOBPtr == NULL) {
         printf("Error opening file");
         return 1;
@@ -550,7 +564,7 @@ int main() {
         // Stores the Building file name
         sscanf(line, "%s", buildingText);
         // printf("Current Building: %s\n", buildingText);
-        char dirChanges[20] = "./current/";
+        char dirChanges[50] = "./buildings/current_changes/";
         strcat(dirChanges, buildingText);
         CBPtr = fopen(dirChanges, "rt");
         // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
@@ -559,6 +573,8 @@ int main() {
         sscanf(line, "Building No: %d", &bNumber);
         fgets(line, sizeof(line), CBPtr);
         sscanf(line, "Max Rooms: %d", &maxRooms);
+        // fgets(line, sizeof(line), CBPtr);
+        // sscanf(line, "Programs: %s")
 
         struct Buildings *building = createBuilding(bNumber, maxRooms);
         struct Rooms *room = NULL;

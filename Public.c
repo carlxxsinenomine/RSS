@@ -57,7 +57,7 @@ int main(void) {
     head = NULL;
     last = NULL;
     
-    listOfBuildingsPtr = fopen("listOfBuildings.txt", "rt");
+    listOfBuildingsPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "rt");
 
     if (listOfBuildingsPtr == NULL) {
         perror("Error opening file");
@@ -66,8 +66,11 @@ int main(void) {
 
     // while loop na nagreread line by line from the listOfBuildings.txt
     while (fscanf(listOfBuildingsPtr, "%s", bLine) != EOF) {
-       
-        fptr = fopen(bLine, "rt");
+        // printf("Current Building: %s\n", buildingText);
+        char dirChanges[50] = "./buildings/current_changes/";
+        strcat(dirChanges, bLine);
+        fptr = fopen(dirChanges, "rt");
+    
 
         if(fptr == NULL){
             perror("Error handling file");

@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "screens.h"
-#include "global.h"
+#include "../utils/screens.h"
+#include "../utils/global.h"
 
 //Function initialization
 int auth(WINDOW *win,char pass[]);
