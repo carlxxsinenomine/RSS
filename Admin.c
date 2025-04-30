@@ -486,7 +486,7 @@ void editRoomSchedule(struct Rooms *room) {
             strcpy(current->time, time);
             scanf("%s", time);
             break;
-        default:
+        case 'a':
             printf("Enter Day: ");
             scanf("%s", day);
             strcpy(current->day, day);
@@ -496,6 +496,8 @@ void editRoomSchedule(struct Rooms *room) {
             printf("Enter Time");
             scanf("%s", time);
             scanf("%s", time);
+        default: 
+            printf("Invalid\n");
     }
 }
 
@@ -660,7 +662,62 @@ void addRoom(struct Buildings *building) {
         currentRoom = currentRoom->next;
     }
 }
-// void editBuilding() {}
+// edit specific building info e.g. maxrooms, buildingnumber, etc
+void editBuilding(struct Buildings *building) {
+    char option;
+    printf("What do you want to edit: [b]uildingNumber, [m]axRooms, [F]FloorMax, [S]FloorMax, [a]ll");
+    scanf(" %c", &option);
+
+    int newBuildingNumber, newMaxRooms, newFFloorMax, newSFloorMax;
+    switch (option) {
+        case 'b':   
+            printf("Enter new building number: ");
+            scanf("%d", &newBuildingNumber);
+            if(newBuildingNumber<1) return; // error negative value
+            //TODO: check if existing na building number
+            building->buildingNumber = newBuildingNumber;
+            break;
+        case 'm':
+            printf("Enter new maxRooms count: ");
+            scanf("%d", &newMaxRooms);
+            if(newMaxRooms<1) return; // error
+            building->maxRooms = newMaxRooms;
+            break;
+        case 'F':
+            printf("Enter new First Floor Max: ");
+            scanf("%d", &newFFloorMax);
+            if(newFFloorMax<1) return;
+            building->FFloorMax = newFFloorMax;
+            break;
+        case 'S':
+            printf("Enter new Second Floor Max: ");
+            scanf("%d", &newSFloorMax);
+            if(newSFloorMax<1) return;
+            building->SFloorMax = newSFloorMax;
+            break;
+        case 'a':
+            printf("Enter new building number: ");
+            scanf("%d", &newBuildingNumber);
+            if(newBuildingNumber<1) return; // error negative value
+            //TODO: check if existing na building number
+            building->buildingNumber = newBuildingNumber;
+            printf("Enter new maxRooms count: ");
+            scanf("%d", &newMaxRooms);
+            if(newMaxRooms<1) return; // error
+            building->maxRooms = newMaxRooms;
+            printf("Enter new First Floor Max: ");
+            scanf("%d", &newFFloorMax);
+            if(newFFloorMax<1) return;
+            building->FFloorMax = newFFloorMax;
+            printf("Enter new Second Floor Max: ");
+            scanf("%d", &newSFloorMax);
+            if(newSFloorMax<1) return;
+            building->SFloorMax = newSFloorMax;
+            break;
+        default:
+            printf("Invalid");
+    }
+}
 
 void addBuilding() {
     int buildingNumber;
