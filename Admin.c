@@ -54,7 +54,7 @@ void deleteRoomSchedule(struct Rooms *room);
 void upToLower(char word[10]);
 void addRoomSchedule(struct Rooms* room);
 void sortSchedules(struct Rooms* room);
-
+void editBuilding(struct Buildings *building);
 
 int main() {
     // listOfBuildingsPointer, currentBuildingPointer
