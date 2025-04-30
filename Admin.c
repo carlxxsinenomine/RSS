@@ -341,7 +341,29 @@ void editRoomSchedule(struct Rooms *room) {
     }
 }
 
-// void printLastChanges(struct Buildings *building) {}
+/**
+ * dito naiisip ko na ung rooms na may nagawang changes lang iprint will change later
+ */
+void printLastChanges(struct Buildings *building) {
+    FILE *lastChanges;
+
+    char strBuildingNumber[5];
+    int buildingNumber = building->buildingNumber;
+    int maxRooms = building->maxRooms;
+    sprintf(strBuildingNumber, "%d", buildingNumber); // convert into str
+    char lastChangesDir[125] = "./buildings/last_changes/last_changes_bld";
+    strcat(lastChangesDir, strBuildingNumber);
+    strcat(lastChangesDir, ".txt");
+
+    lastChanges = fopen(lastChangesDir, "rt");
+
+    // int bulidingNumber, maxRooms, fFloorMax, sFloorMax;
+    char line[100];
+    while(fgets(line, sizeof(line), lastChanges)) {
+        printf("%s", line);
+    }
+    
+}
 
 // void revertChanges() {}
 
@@ -602,6 +624,7 @@ void addRoomSchedule(struct Rooms* room) {
                room->schedules[i].courseCode,
                room->schedules[i].time);
 }
+
 // Sort Schedules using the bubble sort Algo
 void sortSchedules(struct Rooms* room) {
     // Sort schedules per day using bubble sort
@@ -670,8 +693,6 @@ void sortSchedules(struct Rooms* room) {
     }
 }
 
-
-
 int main() {
     // listOfBuildingsPointer, currentBuildingPointer
     FILE *LOBPtr, *CBPtr;  
@@ -679,7 +700,6 @@ int main() {
     int bNumber, maxRooms, FFloorMax, SFloorMax;
     char line[100];
     char buildingText[100];
-    int currentRoom = 0; // Room 1, or index zero
     char option;
 
     LOBPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "rt");
@@ -725,6 +745,7 @@ int main() {
                     // Error sumobra sa maxRoom ung room na nareread from file
                     break;
                 }
+                int currentRoom = 0;
                 sscanf(line, "Room: %d", &currentRoom);
                 room = _loadRoom(currentRoom, building);
                 continue;
@@ -766,7 +787,10 @@ int main() {
         int bNum;
         scanf("%d", &bNum);
         struct Buildings* selectedBuilding = selectBuilding(bNum);
-    
+        if(option == 'l') {
+            printLastChanges(selectedBuilding);
+            continue;
+        }
         printRooms(selectedBuilding);
         int roomOfChoice;
         struct Rooms* selectedRoom = NULL;
@@ -775,7 +799,6 @@ int main() {
             scanf("%d", &roomOfChoice);
              selectedRoom = selectRoom(roomOfChoice, selectedBuilding->head);
         }
-
 
         // kulang pa ng edit
         switch (option) {
