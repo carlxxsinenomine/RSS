@@ -1,4 +1,5 @@
 #include <ncurses.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -6,7 +7,7 @@
 #include "global.h"
 
 //Function initialization
-void manual(int arg1,char *agr2[]);
+void manual(int argc,char *argv[]);
 int auth(WINDOW *win,const char *username);
 
 /* @date_added: 04/10/2025
@@ -15,6 +16,8 @@ int auth(WINDOW *win,const char *username);
  * @description: Main window. Utilizes every function defined.
  */
 int main(int argc,char *argv[]){
+	manual(argc,argv);
+
 	initscr();
 	noecho();
 	curs_set(0);
@@ -118,11 +121,30 @@ int main(int argc,char *argv[]){
  * @params: argc, argv
  * @description: Prints manual
  */
-void manual(int arg1,char *agr2[]){
-	if(arg1!=2){
-		printf("Not enough argument\n");
+void manual(int argc,char *argv[]){
+	const char *Man[]={
+		"Manual:",
+		"+-----------+---------------------------------------------+-------+",
+		"| Main Menu |                 Description                 | Usage |",
+		"+-----------+---------------------------------------------+-------+",
+		"| User      | View buildings->rooms->schedules            | 1     |",
+		"| Admin     | View & edit buildings->rooms->schedules     | 2     |",
+		"| About     | Contains info about: RSS, authors, and more | 3     |",
+		"| Exit      | Exit button                                 | X     |",
+		"+-----------+---------------------------------------------+-------+"
+	};
+
+	if(argc<=0 || argc>2 || (strcmp(argv[1],"-h")!=0 && strcmp(argv[1],"--help")!=0)){
+		printf("Invalid argument\n");
+		printf("\bValid commands: -h\t--help\n");
 		exit(1);
 	}
+	else{
+		for(int i=0;i<(sizeof(Man)/sizeof(Man[0]));i++){
+			printf("%s\n",Man[i]);
+		}
+	}
+	exit(0);
 }
 
 /* @date_added: 04/16/2025
