@@ -7,7 +7,7 @@
 #include "global.h"
 
 //Function initialization
-void manual(int argc,char *argv[]);
+int manual(int argc,char *argv[]);
 int auth(WINDOW *win,const char *username);
 
 /* @date_added: 04/10/2025
@@ -16,7 +16,9 @@ int auth(WINDOW *win,const char *username);
  * @description: Main window. Utilizes every function defined.
  */
 int main(int argc,char *argv[]){
-	manual(argc,argv);
+	if(!manual(argc,argv)) {
+		return 0;
+	};
 
 	initscr();
 	noecho();
@@ -121,7 +123,7 @@ int main(int argc,char *argv[]){
  * @params: argc, argv
  * @description: Prints manual
  */
-void manual(int argc,char *argv[]){
+int manual(int argc,char *argv[]){
 	const char *Man[]={
 		"Manual:",
 		"+-----------+---------------------------------------------+-------+",
@@ -131,20 +133,28 @@ void manual(int argc,char *argv[]){
 		"| Admin     | View & edit buildings->rooms->schedules     | 2     |",
 		"| About     | Contains info about: RSS, authors, and more | 3     |",
 		"| Exit      | Exit button                                 | X     |",
-		"+-----------+---------------------------------------------+-------+"
+		"+-----------+---------------------------------------------+-------+",
+		" ",
+		"Note before proceeding:",
+		"1. buildings/ must contain ",
+		"2. src/passwords must contain passwords or it will create an empty file. You cannot continue unless there is a text within it",
+		"3"
 	};
 
-	if(argc<=0 || argc>2 || (strcmp(argv[1],"-h")!=0 && strcmp(argv[1],"--help")!=0)){
-		printf("Invalid argument\n");
-		printf("\bValid commands: -h\t--help\n");
-		exit(1);
+	if (argc==1) {
+		return 1;
 	}
-	else{
-		for(int i=0;i<(sizeof(Man)/sizeof(Man[0]));i++){
+	else if(argc==2 && strcmp(argv[1],"-h")==0 || strcmp(argv[1],"--help")==0){
+		for(int i=0;i<(sizeof(Man)/sizeof(Man[0]));i++) {
 			printf("%s\n",Man[i]);
 		}
+		return 0;
 	}
-	exit(0);
+	else{
+		printf("Invalid argument\n");
+		printf("\nValid commands: -h\t--help\n");
+		exit(1);
+	}
 }
 
 /* @date_added: 04/16/2025
@@ -173,69 +183,73 @@ int auth(WINDOW *win,const char *user_type){
 	else if(strcmp(user_type,"users")==0){
 		Fname="src/passwords/users.txt";
 	}
-    	
+
 	keypad(sub,TRUE);
 
-    	char input_pass[19]={0};
-    	const char pass_lim[]="Reached password limit";
+	char input_pass[19]={0};
 	int i;
-    	int ch;
+	int ch;
 
-    	while(1){
+	while(1){
 		box(sub,0,0);
-        	mvwprintw(sub,0,2,"[CRTL + X] Cancel");
-        	mvwprintw(sub,1,1,"Enter User password: ");
+		mvwprintw(sub,0,2,"[CRTL + X] Cancel");
+		mvwprintw(sub,1,1,"Enter User password: ");
 
 		i=0;
 
-        	//While user don't press enter
-        	while((ch=wgetch(sub))!='\n' && i<19){
+		//While user don't press enter
+		while((ch=wgetch(sub))!='\n' && i<19){
 			int y,x;
-            		getyx(sub,y,x);
+			getyx(sub,y,x);
 
 			//ASCII value of backsapce is 127
-            		if(ch==KEY_BACKSPACE || ch==127){
-                		if(i>0){
-                    		i--;
-                    		input_pass[i]='\0';
-                    		mvwprintw(sub,y,x-1," ");
-                    		wmove(sub,y,x-1);
-                    		wrefresh(sub);
-				}
-            		}
-            		//ASCII value of crtl+x key is 24
-            		else if(ch==24){
-                		delwin(sub);
-                		return 0;
-            		}
+			if(ch==KEY_BACKSPACE || ch==127){
+				if(i>0){
+					i--;
+					input_pass[i]='\0';
+					mvwprintw(sub,y,x-1," ");
+					wmove(sub,y,x-1);
+					wrefresh(sub);
+        			}
+			}
+			//ASCII value of crtl+x key is 24
+			else if(ch==24){
+				delwin(sub);
+				return 0;
+			}
 			else if(ch==' '){
 				const char no_space[]="Password should not contain spaces";
-        			mvwprintw(sub,1,(width-strlen(no_space))/2,"%s",no_space);
+				mvwprintw(sub,1,(width-strlen(no_space))/2,"%s",no_space);
 				wrefresh(sub);
 				napms(2000);
 				return 0;
 			}
-            		//Printable ASCII characters are only within the range of 32-126
-            		else if(ch>=32 && ch<=126){
-                		if(i<18){
-                    		input_pass[i]=ch;
-                    		mvwprintw(sub,y,x,"%c",ch);
-                    		i++;
-                    		wrefresh(sub);
+			//Printable ASCII characters are only within the range of 32-126
+			else if(ch>=32 && ch<=126){
+				if(i<18){
+					input_pass[i]=ch;
+					mvwprintw(sub,y,x,"%c",ch);
+					i++;
+					wrefresh(sub);
 				}
 			}
 		}
-
-        	//Terminates the buffer
-        	input_pass[i]='\0';
+		//Terminates the buffer
+		input_pass[i]='\0';
 
 		FILE *pw=fopen(Fname,"rt");
 		if(!pw){
 			const char cnof[]="Could not open file";
 			box(sub,0,0);
-        		mvwprintw(sub,1,(width-strlen(cnof))/2,"%s",cnof);
-        		wrefresh(sub);
-        		napms(2000);
+			mvwprintw(sub,1,(width-strlen(cnof))/2,"%s",cnof);
+			wrefresh(sub);
+			napms(2000);
+			
+			pw=fopen(Fname,"wt");
+			const char cefa[]="Created empty file at src/passwords";
+			mvwprintw(sub,1,(width-strlen(cefa))/2,"%s",cefa);
+			wrefresh(sub);
+			napms(1000);
 			return 0;
 		}
 
