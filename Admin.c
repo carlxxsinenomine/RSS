@@ -907,7 +907,8 @@ void addRoomSchedule(struct Rooms* room) {
         if(strcmp(room->schedules[index].day, day) == 0)  {// if same day as inputted value
             int schedFirstHalf, schedSecHalf,schedSecHalfMin;
             sscanf(room->schedules[index].time, "%d", &schedFirstHalf);//retrieves the first half of hh:mmxx-hh:mmxx
-            sscanf(room->schedules[index].time, "%50[^-]-%d:%d", &schedSecHalf, &schedSecHalfMin);
+            char trsh[51]; // ignore
+            sscanf(room->schedules[index].time, "%50[^-]-%d:%d", trsh, &schedSecHalf, &schedSecHalfMin);
             if((FHI == schedFirstHalf) || (FHI == schedSecHalf && FHMI < schedSecHalfMin)) {//e.g 7 and 7:30, then error
                 printf("Error overlapping values\n");
                 return;
