@@ -28,8 +28,6 @@ struct Buildings {
     int maxRooms;
     int FFloorMax;
     int SFloorMax;
-    int FFloorMax;
-    int SFloorMax;
     struct Rooms* head;
     struct Rooms* last;
     struct Buildings *prev;
@@ -70,79 +68,85 @@ int main() {
 
     LOBPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "rt");
     if (LOBPtr == NULL) {
-        printf("Error opening file");
-        return 1;
+        FILE *createFile;
+        createFile = fopen("./buildings/current_changes/listOfBuildings.txt", "wt");
+        fclose(createFile);
+    }
+    int isEmpty = 0;
+    int bytes_read = fread(line, 1, sizeof(line), LOBPtr);
+    if (bytes_read) {
+        while(fgets(line, sizeof(line), LOBPtr)) {
+        
+
+            // Stores the Building file name
+            sscanf(line, "%s", buildingText);
+            // printf("Current Building: %s\n", buildingText);
+            char dirChanges[50] = "./buildings/current_changes/";
+            strcat(dirChanges, buildingText);
+            CBPtr = fopen(dirChanges, "rt");
+            // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
+            // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
+            fgets(line, sizeof(line), CBPtr);
+            sscanf(line, "Building No: %d", &bNumber);
+    
+            fgets(line, sizeof(line), CBPtr);
+            sscanf(line, "Max Rooms: %d", &maxRooms);
+    
+            fgets(line, sizeof(line), CBPtr);
+            sscanf(line, "FFloor Max: %d", &FFloorMax);
+    
+            fgets(line, sizeof(line), CBPtr);
+            sscanf(line, "SFloor Max: %d", &SFloorMax);
+    
+            printf("FLLORMAX: %d", FFloorMax);
+            printf("SLORMAX: %d", SFloorMax);
+    
+            // fgets(line, sizeof(line), CBPtr);
+            // sscanf(line, "Programs: %s")
+            int roomsCount = 0; // for checking purposes;
+            struct Buildings *building = _loadBuildings(bNumber, maxRooms, FFloorMax, SFloorMax);
+            struct Rooms *room = NULL;
+            while (fgets(line, sizeof(line), CBPtr)) {
+                // If Room: is present on the string
+                if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
+                    roomsCount++;
+                    if(roomsCount >= building->maxRooms) {
+                        // Error sumobra sa maxRoom ung room na nareread from file
+                        break;
+                    }
+                    int currentRoom = 0;
+                    sscanf(line, "Room: %d", &currentRoom);
+                    room = _loadRoom(currentRoom, building);
+                    continue;
+                }
+    
+                if (strlen(line) <= 1)
+                    continue; // If empty line skip.
+    
+                int dayIndex;
+                char courseCode[21], time[21];
+    
+                if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
+                    if (room)
+                        addSchedule(room, dayIndex, courseCode, time);
+            }
+        }
+        fclose(CBPtr);
     }
 
-    while(fgets(line, sizeof(line), LOBPtr)) {
-        // Stores the Building file name
-        sscanf(line, "%s", buildingText);
-        // printf("Current Building: %s\n", buildingText);
-        char dirChanges[50] = "./buildings/current_changes/";
-        strcat(dirChanges, buildingText);
-        CBPtr = fopen(dirChanges, "rt");
-        // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
-        // sscanf hinahanap nya sa array ang format na inespecify mo. e.g. "Room: 1", tas format mo "Room: %d". mareread nya ung 1
-        fgets(line, sizeof(line), CBPtr);
-        sscanf(line, "Building No: %d", &bNumber);
-
-        fgets(line, sizeof(line), CBPtr);
-        sscanf(line, "Max Rooms: %d", &maxRooms);
-
-        fgets(line, sizeof(line), CBPtr);
-        sscanf(line, "FFloor Max: %d", &FFloorMax);
-
-        fgets(line, sizeof(line), CBPtr);
-        sscanf(line, "SFloor Max: %d", &SFloorMax);
-
-        printf("FLLORMAX: %d", FFloorMax);
-        printf("SLORMAX: %d", SFloorMax);
-
-        // fgets(line, sizeof(line), CBPtr);
-        // sscanf(line, "Programs: %s")
-        int roomsCount = 0; // for checking purposes;
-        struct Buildings *building = _loadBuildings(bNumber, maxRooms, FFloorMax, SFloorMax);
-        struct Rooms *room = NULL;
-        while (fgets(line, sizeof(line), CBPtr)) {
-            // If Room: is present on the string
-            if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
-                roomsCount++;
-                if(roomsCount >= building->maxRooms) {
-                    // Error sumobra sa maxRoom ung room na nareread from file
-                    break;
-                }
-                int currentRoom = 0;
-                sscanf(line, "Room: %d", &currentRoom);
-                room = _loadRoom(currentRoom, building);
-                continue;
+    if(bytes_read) {
+        struct Buildings *currentBuilding = bHead;
+        while (currentBuilding != NULL) {
+            struct Rooms *currentRoom = currentBuilding->head;
+            while (currentRoom != NULL) {
+                sortSchedules(currentRoom);
+                currentRoom = currentRoom->next;
             }
-
-            if (strlen(line) <= 1)
-                continue; // If empty line skip.
-
-            int dayIndex;
-            char courseCode[21], time[21];
-
-            if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
-                if (room)
-                    addSchedule(room, dayIndex, courseCode, time);
+            currentBuilding = currentBuilding->next;
         }
     }
-
-    fclose(CBPtr);
-
 
     // Sort each schedules per buildings and rooms
-    struct Buildings *currentBuilding = bHead;
-    while (currentBuilding != NULL) {
-        struct Rooms *currentRoom = currentBuilding->head;
-        while (currentRoom != NULL) {
-            sortSchedules(currentRoom);
-            currentRoom = currentRoom->next;
-        }
-        currentBuilding = currentBuilding->next;
-    }
-
     while(1) {
         printf("\n\nChoose [a]dd Schedule, add b[u]ilding, edi[t] building, [d]elete Schedule, [e]dit Schedule, [p]rint Room Schedule, pr[i]nt last changes, re[v]ert last changes [q]uit: ");
         scanf(" %c", &option);
@@ -151,6 +155,11 @@ int main() {
         printBuildings();
         if(option == 'u') {
             addBuilding();
+            continue;
+        }
+
+        if(!bytes_read) {
+            printf("Buildings unavailable, please add buildings first.");
             continue;
         }
 
@@ -277,7 +286,6 @@ void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const
  * @description: Creates a linked list of Building
  */
 struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, int floor2max) {
-struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, int floor2max) {
     struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
     if (!newBuilding) { // if new building is NULL
         printf("Memory allocation failed.");
@@ -311,7 +319,6 @@ struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, 
  * @parameter: Accepts an INt, Buildings Structure
  * @description: Creates a linked list of Rooms inside a structure of Building
  */
-struct Rooms* _loadRoom(int roomNumber, struct Buildings *currentBuilding) {
 struct Rooms* _loadRoom(int roomNumber, struct Buildings *currentBuilding) {
 
     struct Rooms* newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
@@ -411,7 +418,6 @@ void _saveCurrentChanges(struct Buildings *current) {
     char strBuildingNumber[5];
     sprintf(strBuildingNumber, "%d", current->buildingNumber);
     char dirCurrent[125] = "./buildings/current_changes/bld";
-    char dirCurrent[125] = "./buildings/current_changes/bld";
     strcat(dirCurrent, strBuildingNumber);
     strcat(dirCurrent, ".txt");
 
@@ -451,7 +457,6 @@ void _saveLastChanges(struct Buildings *current) {
     int buildingNumber = current->buildingNumber;
     int maxRooms = current->maxRooms;
     sprintf(strBuildingNumber, "%d", buildingNumber);
-    char dirChanges[125] = "./buildings/last_changes/last_changes_bld";
     char dirChanges[125] = "./buildings/last_changes/last_changes_bld";
     strcat(dirChanges, strBuildingNumber);
     strcat(dirChanges, ".txt");
