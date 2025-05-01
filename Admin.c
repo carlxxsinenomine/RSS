@@ -26,8 +26,6 @@ struct Rooms {
 struct Buildings {
     int buildingNumber;
     int maxRooms;
-    int FFloorMax;
-    int SFloorMax;
     struct Rooms* head;
     struct Rooms* last;
     struct Buildings *prev;
@@ -39,7 +37,7 @@ char* DAYS[MAX_DAYS] = {"monday", "tuesday", "wednesday", "thursday", "friday", 
 void printBuildings();
 void printRooms(struct Buildings *building);
 void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
-struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, int floor2max);
+struct Buildings* _loadBuildings(int buildingNumber, int maxRms);
 struct Rooms* _loadRoom(int roomNumber, struct Buildings *currentBuilding);
 struct Rooms* selectRoom(int roomNumber, struct Rooms* head);
 struct Buildings* selectBuilding(int bNum);
@@ -61,7 +59,7 @@ int main() {
     // listOfBuildingsPointer, currentBuildingPointer
     FILE *LOBPtr, *CBPtr;  
 
-    int bNumber, maxRooms, FFloorMax, SFloorMax;
+    int bNumber, maxRooms;
     char line[100];
     char buildingText[100];
     char option;
@@ -73,10 +71,10 @@ int main() {
         fclose(createFile);
     }
     int isEmpty = 0;
-    int bytes_read = fread(line, 1, sizeof(line), LOBPtr);
+    int bytes_read = fread(line, 1, sizeof(line), LOBPtr); // check if may laman ang file
     if (bytes_read) {
+        rewind(LOBPtr); // ibalik sa read mode
         while(fgets(line, sizeof(line), LOBPtr)) {
-        
 
             // Stores the Building file name
             sscanf(line, "%s", buildingText);
@@ -91,20 +89,9 @@ int main() {
     
             fgets(line, sizeof(line), CBPtr);
             sscanf(line, "Max Rooms: %d", &maxRooms);
-    
-            fgets(line, sizeof(line), CBPtr);
-            sscanf(line, "FFloor Max: %d", &FFloorMax);
-    
-            fgets(line, sizeof(line), CBPtr);
-            sscanf(line, "SFloor Max: %d", &SFloorMax);
-    
-            printf("FLLORMAX: %d", FFloorMax);
-            printf("SLORMAX: %d", SFloorMax);
-    
-            // fgets(line, sizeof(line), CBPtr);
-            // sscanf(line, "Programs: %s")
+
             int roomsCount = 0; // for checking purposes;
-            struct Buildings *building = _loadBuildings(bNumber, maxRooms, FFloorMax, SFloorMax);
+            struct Buildings *building = _loadBuildings(bNumber, maxRooms);
             struct Rooms *room = NULL;
             while (fgets(line, sizeof(line), CBPtr)) {
                 // If Room: is present on the string
@@ -130,11 +117,8 @@ int main() {
                     if (room)
                         addSchedule(room, dayIndex, courseCode, time);
             }
+            fclose(CBPtr);
         }
-        fclose(CBPtr);
-    }
-
-    if(bytes_read) {
         struct Buildings *currentBuilding = bHead;
         while (currentBuilding != NULL) {
             struct Rooms *currentRoom = currentBuilding->head;
@@ -145,7 +129,7 @@ int main() {
             currentBuilding = currentBuilding->next;
         }
     }
-
+    fclose(LOBPtr);
     // Sort each schedules per buildings and rooms
     while(1) {
         printf("\n\nChoose [a]dd Schedule, add b[u]ilding, edi[t] building, [d]elete Schedule, [e]dit Schedule, [p]rint Room Schedule, pr[i]nt last changes, re[v]ert last changes [q]uit: ");
@@ -285,7 +269,7 @@ void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const
  * @parameter: Accepts an Int
  * @description: Creates a linked list of Building
  */
-struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, int floor2max) {
+struct Buildings* _loadBuildings(int buildingNumber, int maxRms) {
     struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
     if (!newBuilding) { // if new building is NULL
         printf("Memory allocation failed.");
@@ -294,10 +278,6 @@ struct Buildings* _loadBuildings(int buildingNumber, int maxRms, int floor1max, 
 
     newBuilding->buildingNumber = buildingNumber;
     newBuilding->maxRooms = maxRms;
-    newBuilding->FFloorMax = floor1max;
-    newBuilding->SFloorMax = floor2max;
-    newBuilding->FFloorMax = floor1max;
-    newBuilding->SFloorMax = floor2max;
     newBuilding->head = NULL;
     newBuilding->last = NULL;
     newBuilding->next = NULL;
@@ -425,12 +405,6 @@ void _saveCurrentChanges(struct Buildings *current) {
 
     fprintf(savePTR, "Building No: %d\n", current->buildingNumber);
     fprintf(savePTR, "Max Rooms: %d\n", current->maxRooms);
-    fprintf(savePTR, "FFloor Max: %d\n", current->FFloorMax);
-    fprintf(savePTR, "SFloor Max: %d\n\n", current->SFloorMax);
-    fprintf(savePTR, "Max Rooms: %d\n", current->maxRooms);
-    fprintf(savePTR, "FFloor Max: %d\n", current->FFloorMax);
-    fprintf(savePTR, "SFloor Max: %d\n\n", current->SFloorMax);
-
     struct Rooms *room = current->head;
     while(room!=NULL) {
         fprintf(savePTR, "Room: %d\n", room->roomNumber);
@@ -464,13 +438,6 @@ void _saveLastChanges(struct Buildings *current) {
     changesPTR = fopen(dirChanges, "wt");
     fprintf(changesPTR, "Building No: %d\n", buildingNumber);
     fprintf(changesPTR, "Max Rooms: %d\n", maxRooms);
-    fprintf(changesPTR, "FFloor Max: %d\n", current->FFloorMax);
-    fprintf(changesPTR, "SFloor Max: %d\n\n", current->SFloorMax);
-
-    fprintf(changesPTR, "Max Rooms: %d\n", maxRooms);
-    fprintf(changesPTR, "FFloor Max: %d\n", current->FFloorMax);
-    fprintf(changesPTR, "SFloor Max: %d\n\n", current->SFloorMax);
-
 
     struct Rooms *room = current->head;
     while(room!=NULL) {
@@ -578,15 +545,8 @@ void revertChanges(struct Buildings *current) {
     char line[100];
     fgets(line, sizeof(line), revertPtr);
     sscanf(line, "Building No: %d", &current->buildingNumber);
-
     fgets(line, sizeof(line), revertPtr);
     sscanf(line, "Max Rooms: %d", &current->maxRooms);
-
-    fgets(line, sizeof(line), revertPtr);
-    sscanf(line, "FFloor Max: %d", &current->FFloorMax);
-
-    fgets(line, sizeof(line), revertPtr);
-    sscanf(line, "SFloor Max: %d", &current->SFloorMax);
 
     struct Rooms *currentRm = current->head;
 
@@ -643,40 +603,6 @@ void addRoom(struct Buildings *building) {
         }
         currentRoom = currentRoom->next;
     }
-
-    // To check kung ilan na ang rooms sa FirstFloor and SecondFloor
-    int FFloorCount=0;
-    int SFloorCount=0;
-    while(currentRoom != NULL) {
-        if(currentRoom->roomNumber < 200) 
-            FFloorCount++;
-        else 
-            SFloorCount++;
-
-        if(FFloorCount >= building->FFloorMax) {
-            // then max na ang count ng FirstFloor
-            //ask user if gusto panya ulitin then call the function again
-            addRoom(building);
-        } else if(SFloorCount >= building->SFloorMax) {
-            // then max na ang count ng SecFloor
-            //ask user if gusto panya ulitin then call the function again
-            addRoom(building);
-        }
-        currentRoom = currentRoom->next;
-    }
-    int isFFLoor = (roomNumber < 200) ? 1 : 0;
-
-    if(isFFLoor&& (roomNumber > (building->FFloorMax + 100) || roomNumber < 101)) {
-        // error
-        printf("Error din to.\n");
-        return;
-    }
-
-    if(!isFFLoor&& (roomNumber > (building->FFloorMax + 200) || roomNumber < 201)) {
-        // error
-        printf("Error na.\n");
-        return;
-    }
     
     struct Rooms *newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
 
@@ -717,10 +643,10 @@ void addRoom(struct Buildings *building) {
 void editBuilding(struct Buildings *building) {
     int currentBNumber = building->buildingNumber; // for error handling puruposes
     char option;
-    printf("What do you want to edit: [b]uildingNumber, [m]axRooms, [F]FloorMax, [S]FloorMax, [a]ll");
+    printf("What do you want to edit: [b]uildingNumber, [m]axRooms, [a]ll");
     scanf(" %c", &option);
 
-    int newBuildingNumber, newMaxRooms, newFFloorMax, newSFloorMax;
+    int newBuildingNumber, newMaxRooms;
     struct Buildings *current = bHead; // will be used to traverse the linkedlist of Buildings structure
 
     switch (option) {
@@ -754,18 +680,6 @@ void editBuilding(struct Buildings *building) {
             if(newMaxRooms<1) return; // error
             building->maxRooms = newMaxRooms;
             break;
-        case 'F':
-            printf("Enter new First Floor Max: ");
-            scanf("%d", &newFFloorMax);
-            if(newFFloorMax<1) return;
-            building->FFloorMax = newFFloorMax;
-            break;
-        case 'S':
-            printf("Enter new Second Floor Max: ");
-            scanf("%d", &newSFloorMax);
-            if(newSFloorMax<1) return;
-            building->SFloorMax = newSFloorMax;
-            break;
         case 'a':
             printf("Enter new building number: ");
             scanf("%d", &newBuildingNumber);
@@ -793,14 +707,6 @@ void editBuilding(struct Buildings *building) {
             scanf("%d", &newMaxRooms);
             if(newMaxRooms<1) return; // error
             building->maxRooms = newMaxRooms;
-            printf("Enter new First Floor Max: ");
-            scanf("%d", &newFFloorMax);
-            if(newFFloorMax<1) return;
-            building->FFloorMax = newFFloorMax;
-            printf("Enter new Second Floor Max: ");
-            scanf("%d", &newSFloorMax);
-            if(newSFloorMax<1) return;
-            building->SFloorMax = newSFloorMax;
             break;
         default:
             printf("Invalid");
@@ -829,28 +735,13 @@ void addBuilding() {
         current = current->next;
     }
     
-    int maxRooms, firstFloorMax, secondFloorMax;
+    int maxRooms;
     printf("Enter Max Room for this building: ");
     scanf("%d", &maxRooms);
     if(maxRooms < 1) {
         fclose(listOfBuildingsPtr);
         return;
     }
-    
-    printf("Enter First Floor Max: ");
-    scanf("%d", &firstFloorMax);
-    if(firstFloorMax < 1) {
-        fclose(listOfBuildingsPtr);
-        return;
-    }
-    
-    printf("Enter Second Floor Max (0 if none): ");
-    scanf("%d", &secondFloorMax);
-    if(secondFloorMax < 0) {
-        fclose(listOfBuildingsPtr);
-        return;
-    }
-
     // Save current contents to changes file
     FILE *LOBuildingsChanges = fopen("./buildings/last_changes/listOfBuildingsChanges.txt", "wt");
     if(LOBuildingsChanges == NULL) {
@@ -868,8 +759,6 @@ void addBuilding() {
     struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
     newBuilding->buildingNumber = buildingNumber;
     newBuilding->maxRooms = maxRooms;
-    newBuilding->FFloorMax = firstFloorMax;
-    newBuilding->SFloorMax = secondFloorMax;
     newBuilding->next = NULL;
     newBuilding->prev = NULL;
 
@@ -1032,10 +921,6 @@ void addRoomSchedule(struct Rooms* room) {
     int isFAM = (firstHalf[strlen(firstHalf) - 2] == 'a') ? 1 : 0; // 1 if AM 0 if PM
     int isSAM = (secondHalf[strlen(secondHalf) - 2] == 'a') ? 1 : 0; // 1 if AM 0 if PM
 
-    printf("isfAm: %d\n", isFAM);
-    printf("issAm: %d\n", isSAM);
-
-
     if(firstHalf[strlen(firstHalf) - 2] == secondHalf[strlen(secondHalf) - 2]) { 
         if(SHI < FHI) { // if it's AM or PM and Second half is higher than first half then error
             printf("3Invalid time values, Please try again\n");
@@ -1119,7 +1004,7 @@ void sortSchedules(struct Rooms* room) {
             sscanf(room->schedules[k].time, "%10[^-]-", fTime);
             sscanf(room->schedules[k+1].time, "%10[^-]-", sTime);
             sscanf(room->schedules[k].time, "%d", &firstHalf);
-            sscanf(room->schedules[k+1].time, "%d", &secondHalf);
+            sscanf(room->schedules[k+1].time, "%d", &secondHalf);\
             
             int isFirstPM = (fTime[strlen(fTime) - 2] == 'p') ? 1 : 0;
             int isSecondPM = (sTime[strlen(sTime) - 2] == 'p') ? 1 : 0;
