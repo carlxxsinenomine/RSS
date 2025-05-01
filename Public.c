@@ -45,7 +45,7 @@ void printfSelectedBuilding(struct Building *building);
 void upToLower(char word[10]);
 void printBuildingNumber();
 int filterCollegeProgram(char *courseCode, char *college_program);
-char collegeProgCheck(char *college_program);
+char userInputCheck(char *college_program);
 
 int main(void) {
   
@@ -114,7 +114,7 @@ int main(void) {
     printf("Enter your college program (e.g, it, cs): ");
     scanf("%s", college_program);
     upToLower(college_program);
-    collegeProgCheck(college_program);
+    userInputCheck(college_program);
 
     int buildingChoice;
     printf("Enter building number to view available rooms: ");
@@ -341,12 +341,11 @@ int filterCollegeProgram(char *courseCode, char *college_program) {
 }
 
 //date added: 04/30
-//checks if user input is valid
-char collegeProgCheck(char *college_program){
-    if(college_program != "cs"||"bscs"||"it"||"bsit"||
-        "chem"||"bschem"||"bio"||"bsbio"||"met"||"bsmet"){
-            printf("invalid input.");
-            exit(0);
+//checks if user input is a char and valid
+char userInputCheck(char *college_program) {
+    if (!isalpha((unsigned char)college_program[0])) {
+        printf("Invalid input.\n");
+        exit(1);
     }
-    return 0;
+    return college_program[0];
 }
