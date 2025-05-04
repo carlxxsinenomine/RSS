@@ -216,7 +216,7 @@ void printBuildings() {
     }
 
     struct Buildings *current = bHead;
-    printf("Room List:\n");
+    printf("Building List:\n");
     while (current != NULL) {
         printf("Building %d:\n", current->buildingNumber);
         current = current->next;

@@ -91,9 +91,7 @@ int main(int argc,char *argv[]){
 		ch=wgetch(win);
 		switch(ch){
 			case '1':
-				if(auth(win,"users")){
-					user_scr();
-				}
+				user_scr();
 				break;
 			case '2':
 				if(auth(win,"admin")){
@@ -281,8 +279,6 @@ int auth(WINDOW *win,const char *user_type){
 		fclose(pw);
 
 		if(verification){
-			wclear(sub);
-			wrefresh(sub);
 			delwin(sub);
 			return 1;
 		}
@@ -292,4 +288,3 @@ int auth(WINDOW *win,const char *user_type){
 	}
 	keypad(sub,FALSE);
 }
-

@@ -37,7 +37,7 @@ void printRooms();
 void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
 struct Rooms* createRoom(struct Building *building, int roomNumber);
 struct Rooms* selectRoom(struct Building *building, int roomNumber);
-void printSelectedRoom(struct Building *building, struct Rooms* room, char *collegeProgram);
+void printSelectedRoom(struct Building *building, struct Rooms* room);
 void printRoomNumber(struct Building *building);
 struct Building *createBuilding(int bldgNum);
 struct Building *selectBuilding(int bldgNum); 
@@ -58,7 +58,7 @@ int main(void) {
     head = NULL;
     last = NULL;
     
-    listOfBuildingsPtr = fopen("./buildings/listOfBuildings.txt", "rt");
+    listOfBuildingsPtr = fopen("buildings/current_changes/listOfBuildings.txt", "rt");
 
     if (listOfBuildingsPtr == NULL) {
         perror("Error opening file");
@@ -67,7 +67,7 @@ int main(void) {
 
     // while loop na nagreread line by line from the listOfBuildings.txt
     while (fscanf(listOfBuildingsPtr, "%s", bLine) != EOF) {
-       char dirC[50] = "./buildings/";
+       char dirC[50] = "buildings/current_changes/";
        strcat(dirC, bLine);
        fptr = fopen(dirC, "rt");
 
@@ -110,11 +110,11 @@ int main(void) {
     } 
    
     printBuildingNumber();
-    char college_program[10];
-    printf("Enter your college program (e.g, it, cs): ");
-    scanf("%s", college_program);
-    upToLower(college_program);
-    userInputCheck(college_program);
+    //char college_program[10];
+    //printf("Enter your college program (e.g, it, cs): ");
+    //scanf("%s", college_program);
+    //upToLower(college_program);
+    //userInputCheck(college_program);
 
     int buildingChoice;
     printf("Enter building number to view available rooms: ");
@@ -130,25 +130,25 @@ int main(void) {
     scanf("%d", &roomOfChoice);
 
     struct Rooms* selectedRoom = selectRoom(selectedBuilding, roomOfChoice);
-    printSelectedRoom(selectedBuilding, selectedRoom, NULL);
+    printSelectedRoom(selectedBuilding, selectedRoom);
 
-    char userChoice;
-    printf("\nSort by college program [y/n]: ");
-    scanf(" %c", &userChoice);
+    //char userChoice;
+    //printf("\nSort by college program [y/n]: ");
+    //scanf(" %c", &userChoice);
 
-    switch (userChoice) {
-    case 'Y':
-    case 'y':
-        printSelectedRoom(selectedBuilding, selectedRoom, college_program);
-        break;
-    case 'N':
-    case 'n':
-        printSelectedRoom(selectedBuilding, selectedRoom, NULL);
-        break;
-    default:
-        printf("Invalid input");
-        break;
-    }
+    //switch (userChoice) {
+    //case 'Y':
+    //case 'y':
+    //    printSelectedRoom(selectedBuilding, selectedRoom);
+    //    break;
+    //case 'N':
+    //case 'n':
+    //    printSelectedRoom(selectedBuilding, selectedRoom);
+    //    break;
+    //default:
+    //    printf("Invalid input");
+    //    break;
+    //}
 
     fclose(listOfBuildingsPtr);
 
@@ -304,7 +304,7 @@ struct Rooms* selectRoom(struct Building *building, int roomNumber) {
 }
 
 // iprint ung list ng selected na room
-void printSelectedRoom(struct Building *building, struct Rooms* room, char *collegeProgram) {
+void printSelectedRoom(struct Building *building, struct Rooms* room) {
     int currentRoomNumber = room->roomNumber;
     printf("Room Number: %d\n", currentRoomNumber);
     // printf("Room Sched Count: %d", room->scheduleCount);
@@ -313,19 +313,12 @@ void printSelectedRoom(struct Building *building, struct Rooms* room, char *coll
         return;
     }
 
-    int flag = 0;
     for (int i = 0; i < room->scheduleCount; i++) {
-        if(collegeProgram == NULL||filterCollegeProgram(room->schedules[i].courseCode, collegeProgram)){
             printf("  %s, %s at %s\n",
                room->schedules[i].day,
                room->schedules[i].courseCode,
                room->schedules[i].time);
-            flag = 1;
         }
-    }
-    if(flag == 0){
-        printf("No schedule for %s", collegeProgram);
-    }
 }
 
 //date added: 04/23
@@ -336,16 +329,16 @@ void upToLower(char word[10]) {
 
 //date added: 04/23
 //date edited: 04/24
-int filterCollegeProgram(char *courseCode, char *college_program) {
-    return strstr(courseCode, college_program) != NULL;
-}
+//int filterCollegeProgram(char *courseCode, char *college_program) {
+//    return strstr(courseCode, college_program) != NULL;
+//}
 
 //date added: 04/30
 //checks if user input is a char and valid
-char userInputCheck(char *college_program) {
-    if (!isalpha((unsigned char)college_program[0])) {
-        printf("Invalid input.\n");
-        exit(1);
-    }
-    return college_program[0];
-}
+//char userInputCheck(char *college_program) {
+//    if (!isalpha((unsigned char)college_program[0])) {
+//        printf("Invalid input.\n");
+//        exit(1);
+//    }
+//    return college_program[0];
+//}

@@ -29,9 +29,25 @@ void admin_scr(void){
 
     status_bar(win,"Admin");
 
+    const char *bldng[]={
+        "____  _   _ ___ _     ____ ___ _   _  ____ ____  ",
+        "| __ )| | | |_ _| |   |  _ \\_ _| \\ | |/ ___/ ___| ",
+        "|  _ \\| | | || || |   | | | | ||  \\| | |  _\\___ \\ ",
+        "| |_) | |_| || || |___| |_| | || |\\  | |_| |___) |",
+        "|____/ \\___/|___|_____|____/___|_| \\_|\\____|____/ ",
+    };
+
+    int bldng_row_size=sizeof(bldng)/sizeof(bldng[0]);
+    
     int ch=0;
 
     while(1){
+        for(int i=0;i<bldng_row_size;i++){
+            int len=strlen(bldng[i]);
+            int tab=(window_width-len)/2;
+            mvwprintw(win,i+3,tab,"%s",bldng[i]);
+        }
+            
         ch=wgetch(win);
         if(toupper(ch)==('X')){
             break;
