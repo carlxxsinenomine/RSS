@@ -67,7 +67,7 @@ int main(void) {
 
     // while loop na nagreread line by line from the listOfBuildings.txt
     while (fscanf(listOfBuildingsPtr, "%s", bLine) != EOF) {
-       char dirC[50] = "buildings/current_changes/";
+       char dirC[50] = "buildings/curren_changes/";
        strcat(dirC, bLine);
        fptr = fopen(dirC, "rt");
 
