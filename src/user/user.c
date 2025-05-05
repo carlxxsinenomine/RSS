@@ -38,7 +38,7 @@ const char* DAYS[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Fri
 //Function declaration
 int SelectPrompt(WINDOW *win);
 struct Building *createBuilding(int bldgNum);
-void printBuildingNumber(WINDOW *win,int width,int i);
+void printBuildingNumber(WINDOW *win,int width);
 struct Building *selectBuilding(int bldgNum);
 void printSelectedBuilding(struct Building *building);
 void printRooms();
@@ -48,6 +48,9 @@ struct Rooms* selectRoom(struct Building *building, int roomNumber);
 void printSelectedRoom(struct Building *building, struct Rooms* room);
 void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
 void upToLower(char word[10]);
+void clearBuildingList();
+
+
 
 /* @date_added: 04/15/2025
  * @return_type: void
@@ -146,9 +149,8 @@ void user_scr(void){
             int tab=(window_width-len)/2;
             mvwprintw(win,i+3,tab,"%s",bldng[i]);
         }
-    
-        int bldng_indent=0;
-        printBuildingNumber(win,window_width,bldng_indent);
+
+        printBuildingNumber(win,window_width);
 
         wrefresh(win);
 
@@ -174,6 +176,7 @@ void user_scr(void){
         wclear(win);
     }
     fclose(listOfBuildingsPtr);
+    clearBuildingList();
     delwin(win);
 }
 
@@ -278,10 +281,11 @@ struct Building *createBuilding(int bldgNum){
 }
 
 //date added: 04/15
-void printBuildingNumber(WINDOW *win,int width,int i) {
+void printBuildingNumber(WINDOW *win,int width) {
     struct Building *current = bldgHead;
+    int i=0;
     while(current != NULL) {
-        mvwprintw(win,10+i,(width/2)-6,"Building %d i: %d", current->buildingNumber,i);
+        mvwprintw(win,10+i,(width/2)-6,"Building %d", current->buildingNumber);
         current = current->next;
         i++;
     }
@@ -423,4 +427,21 @@ void printSelectedRoom(struct Building *building, struct Rooms* room) {
 //date edited: 04/24
 void upToLower(char word[10]) {
     for(int i = 0; i< strlen(word); i++) word[i] = tolower(word[i]);
+}
+
+void clearBuildingList() {
+    struct Building *current = bldgHead;
+    while (current != NULL) {
+        struct Building *next = current->next;
+        // Free rooms in the building
+        struct Rooms *room = current->head;
+        while (room != NULL) {
+            struct Rooms *nextRoom = room->next;
+            free(room);
+            room = nextRoom;
+        }
+        free(current);
+        current = next;
+    }
+    bldgHead = bldgLast = NULL;
 }
