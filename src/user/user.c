@@ -39,18 +39,15 @@ const char* DAYS[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Fri
 int SelectPrompt(WINDOW *win);
 struct Building *createBuilding(int bldgNum);
 void printBuildingNumber(WINDOW *win,int width);
-struct Building *selectBuilding(int bldgNum);
-void printSelectedBuilding(struct Building *building);
+struct Building *selectBuilding(WINDOW *win,int height,int width,int bldgNum);
 void printRooms();
 struct Rooms* createRoom(struct Building *building, int roomNumber);
-void printRoomNumber(struct Building *building);
+void printRoomNumber(WINDOW *win,int width,struct Building *building);
 struct Rooms* selectRoom(struct Building *building, int roomNumber);
 void printSelectedRoom(struct Building *building, struct Rooms* room);
 void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
 void upToLower(char word[10]);
 void clearBuildingList();
-
-
 
 /* @date_added: 04/15/2025
  * @return_type: void
@@ -84,7 +81,7 @@ void user_scr(void){
         delwin(win);
     }
 
-    status_bar(win,"User");
+    status_bar(win,"User/Buildings");
 
     const char *bldng[]={
         "____  _   _ ___ _     ____ ___ _   _  ____ ____  ",
@@ -156,21 +153,47 @@ void user_scr(void){
 
         int buildingChoice=SelectPrompt(win);
 
-        if(!buildingChoice){
-            break;
+        if(buildingChoice!=-1){
+            struct Building *selectedBuilding = selectBuilding(win,height,window_width,buildingChoice);
+            
+            WINDOW *rooms=newwin(height,window_width,0,width/4);
+            
+            if(!rooms){
+                printf("Failed to load screen\n");
+                exit(1);
+            }
+
+            wborder(rooms,'|','|','-','-','+','+','+','+');
+
+            status_bar(rooms,"User/Buildings/Rooms");
+            
+            printRoomNumber(rooms,window_width,selectedBuilding);
+
+            wrefresh(rooms);
+            
+            int roomOfChoice=SelectPrompt(win);
+
+            if(roomOfChoice!=-1){
+            }
+            else{
+                break;
+            }
+            
         }
+        else{
+            break;
         
-        //struct Building *selectedBuilding = selectBuilding(buildingChoice);
-        //printSelectedBuilding(selectedBuilding);
 //
-        //printRoomNumber(selectedBuilding);
+       
 //
-        //int roomOfChoice;
+       
         //printf("\nEnter room number to view schedule: ");
         //scanf("%d", &roomOfChoice);
     //
         //struct Rooms* selectedRoom = selectRoom(selectedBuilding, roomOfChoice);
         //printSelectedRoom(selectedBuilding, selectedRoom);
+        }
+
     
         check_winsize(win,height,window_width);
         wclear(win);
@@ -186,12 +209,12 @@ int SelectPrompt(WINDOW *win){
 	int height,width;
 	getmaxyx(win,height,width);
 	
-	WINDOW *sub=newwin(3,width-2,height-4,(width/2)+1);
+	WINDOW *sub=newwin(3,width-2,height-5,(width/2)+1);
 	
 	if(!sub){
 		printf("Failed to load screen\n");
         	exit(1);
-    	}
+    }
 
 	keypad(sub,TRUE);
 
@@ -224,14 +247,14 @@ int SelectPrompt(WINDOW *win){
 			//ASCII value of crtl+x key is 24
 			else if(ch==24){
 				delwin(sub);
-				return 0;
+				return -1;
 			}
 			else if(ch==' '){
 				const char no_space[]="Input should not contain spaces";
 				mvwprintw(sub,1,(width-strlen(no_space))/2,"%s",no_space);
 				wrefresh(sub);
 				napms(2000);
-				return 0;
+                return -1;
 			}
 			//Number 0-9 character only
 			else if(ch>='0' && ch<='9'){
@@ -246,7 +269,7 @@ int SelectPrompt(WINDOW *win){
 		//Terminates the buffer
 		user_input[i]='\0';
 
-		if(user_input){
+		if(user_input && i>0){
 			delwin(sub);
 			return atoi(user_input);
 		}
@@ -291,7 +314,7 @@ void printBuildingNumber(WINDOW *win,int width) {
     }
 }
 
-struct Building *selectBuilding(int bldgNum) {
+struct Building *selectBuilding(WINDOW *win,int height,int width,int bldgNum) {
     struct Building* current = bldgHead;
     while (current != NULL) {
         if (current->buildingNumber == bldgNum) { // if val of current->buildingNumber is equal to current edi same room
@@ -299,31 +322,30 @@ struct Building *selectBuilding(int bldgNum) {
         }
 
         if (current->next == NULL) {
-            printf("Invalid building number.");
-            return NULL;
+            const char inbn[]="Invalid Building Number";
+            wattrset(win,A_REVERSE);
+			mvwprintw(win,height/2,(width-strlen(inbn))/2,"%s",inbn);
+            wattrset(win,A_NORMAL);
+            wrefresh(win);
+            napms(2000);
         }
         current = current->next; // Iterate through the next List
     }
     return NULL;
 }
 
-void printSelectedBuilding(struct Building *building){
-    int currentBuildingNumber = building->buildingNumber;
-    printf("\nRooms in building %d\n", currentBuildingNumber);
-
-    if(bldgHead == NULL){
-        printf("No available buildings");
-        return;
-    }
-}
-
 //date edited: 04/15
-void printRoomNumber(struct Building *building){
+void printRoomNumber(WINDOW *win,int width,struct Building *building){
+    int currentBuildingNumber = building->buildingNumber;
+    mvwprintw(win,10,(width/2)-6,"Building %d",currentBuildingNumber);
+
     struct Rooms *current = building->head; 
 
+    int i=0;
     while(current != NULL) {
-        printf("Room %d\n", current->roomNumber);
+        mvwprintw(win,12+i,(width/2)-6,"Room %d", current->roomNumber);
         current = current->next;
+        i++;
     }
 }
 

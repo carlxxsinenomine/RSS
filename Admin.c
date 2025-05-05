@@ -7,7 +7,6 @@
 #define MAX_SCHEDULES 20
 #define MAX_DAYS 6
 
-
 struct Schedule {
     char day[10];
     char courseCode[20];
@@ -21,7 +20,6 @@ struct Rooms {
     struct Rooms *prev;
     struct Rooms *next;
 };
-
 
 struct Buildings {
     int buildingNumber;
