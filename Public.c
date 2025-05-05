@@ -73,7 +73,7 @@ int main(void) {
 
         if(fptr == NULL){
             perror("Error handling file");
-            continue;
+            break;
         }
 
         // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
