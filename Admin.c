@@ -39,7 +39,7 @@ void printRooms(struct Buildings *building);
 void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
 struct Buildings* _loadBuildings(int buildingNumber, int maxRms);
 struct Rooms* _loadRoom(int roomNumber, struct Buildings *currentBuilding);
-struct Rooms* selectRoom(int roomNumber, struct Rooms* head);
+struct Rooms* selectRoom(int roomNumber, struct Buildings* currentBuilding);
 struct Buildings* selectBuilding(int bNum);
 void printSelectedRoom(struct Rooms* room);
 void _saveCurrentChanges(struct Buildings *current);
@@ -176,7 +176,7 @@ int main() {
         printRooms(selectedBuilding);
         printf("Enter Room of choice: ");
         scanf("%d", &roomOfChoice);
-        selectedRoom = selectRoom(roomOfChoice, selectedBuilding->head);
+        selectedRoom = selectRoom(roomOfChoice, selectedBuilding);
 
         // kulang pa ng edit
         switch (option) {
@@ -329,16 +329,15 @@ struct Rooms* _loadRoom(int roomNumber, struct Buildings *currentBuilding) {
  * @parameter: Accepts an INt, Buildings Structure
  * @description: returns a Rooms Structure selected by the user for purposes such as Printing, Updating, Deleting of Room
  */
-struct Rooms* selectRoom(int roomNumber, struct Rooms* head) {
-    struct Rooms* current = head;
+struct Rooms* selectRoom(int roomNumber, struct Buildings* currentBuilding) {
+    struct Rooms* current = currentBuilding->head;
     while (current != NULL) {
         if (current->roomNumber == roomNumber) { // if val of current->roomNumber is equal to current edi same room
             return current; // return the current room na imomodify
         }
 
-        if (current->next == NULL) {
-            printf("Invalid Room");
-            return NULL;
+        if (roomNumber > currentBuilding->last->roomNumber) {
+            return currentBuilding->last;
         }
         current = current->next; // Iterate thruogh the next List
     }
