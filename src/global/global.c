@@ -33,6 +33,6 @@ void status_bar(WINDOW *win,char *status){
     int len=strlen(status);
 
     wattrset(win,A_REVERSE);
-    mvwprintw(win,height-2,(width-len)-2,"%s",status);
+    mvwprintw(win,1,(width-len)-2,"%s",status);
     wattrset(win,A_NORMAL);
 }
