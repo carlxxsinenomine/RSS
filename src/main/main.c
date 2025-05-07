@@ -8,7 +8,7 @@
 
 //Function initialization
 int manual(int argc,char *argv[]);
-int auth(WINDOW *win,const char *username);
+int auth(WINDOW *win);
 
 /* @date_added: 04/10/2025
  * @return_type: int
@@ -94,7 +94,7 @@ int main(int argc,char *argv[]){
 				user_scr();
 				break;
 			case '2':
-				if(auth(win,"admin")){
+				if(auth(win)){
 					admin_scr();
 				}
 				else{
@@ -174,7 +174,7 @@ int manual(int argc,char *argv[]){
  * @params: window, password
  * @description: Creates a window to accept user input for password. Verifies password for program to continue.
  */
-int auth(WINDOW *win,const char *user_type){
+int auth(WINDOW *win){
 	noecho();
 
 	int height,width;
@@ -187,14 +187,9 @@ int auth(WINDOW *win,const char *user_type){
         	exit(1);
     	}
 
-	//Decide what filename to use that will decide the user_type
+	//File name for admin.txt
 	const char *Fname;
-	if(strcmp(user_type,"admin")==0){
-		Fname="src/passwords/admin.txt";
-	}
-	else if(strcmp(user_type,"users")==0){
-		Fname="src/passwords/users.txt";
-	}
+	Fname="src/passwords/admin.txt";
 
 	keypad(sub,TRUE);
 
@@ -205,7 +200,7 @@ int auth(WINDOW *win,const char *user_type){
 	while(1){
 		box(sub,0,0);
 		mvwprintw(sub,0,2,"[CRTL + X] Cancel");
-		mvwprintw(sub,1,1,"Enter User password: ");
+		mvwprintw(sub,1,1,"Enter password: ");
 
 		i=0;
 
@@ -252,16 +247,17 @@ int auth(WINDOW *win,const char *user_type){
 		FILE *pw=fopen(Fname,"rt");
 		if(!pw){
 			const char cnof[]="Could not open file";
-			box(sub,0,0);
 			mvwprintw(sub,1,(width-strlen(cnof))/2,"%s",cnof);
 			wrefresh(sub);
-			napms(2000);
+			napms(1000);
 			
 			pw=fopen(Fname,"wt");
-			const char cefa[]="Created empty file at src/passwords";
+			fprintf(pw,"admin");
+			fclose(pw);
+			const char cefa[]="Created empty file at src/passwords. Default password: admin";
 			mvwprintw(sub,1,(width-strlen(cefa))/2,"%s",cefa);
 			wrefresh(sub);
-			napms(1000);
+			napms(2000);
 			return 0;
 		}
 

@@ -9,7 +9,7 @@
 
 struct Schedule {
     char day[10];
-    char courseCode[20];
+    char programCode[20];
     char time[20];
 };
 
@@ -34,7 +34,7 @@ char* DAYS[MAX_DAYS] = {"monday", "tuesday", "wednesday", "thursday", "friday", 
 
 void printBuildings();
 void printRooms(struct Buildings *building);
-void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
+void _loadSched(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
 struct Buildings* _loadBuildings(int buildingNumber, int maxRms);
 struct Rooms* _loadRoom(int roomNumber, struct Buildings *currentBuilding);
 struct Rooms* selectRoom(int roomNumber, struct Buildings* currentBuilding);
@@ -113,7 +113,7 @@ int main() {
     
                 if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
                     if (room)
-                        addSchedule(room, dayIndex, courseCode, time);
+                        _loadSched(room, dayIndex, courseCode, time);
             }
             fclose(CBPtr);
         }
@@ -245,7 +245,7 @@ void printRooms(struct Buildings *building) {
  * @parameter: Accepts a Room type Structure, Int, Char 
  * @description: Adds data to an Array of Schedule Structure of the cuurent Room object passed as an argument
  */
-void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time) {
+void _loadSched(struct Rooms *room, int dayIndex, const char *courseCode, const char *time) {
     if (room->scheduleCount >= MAX_SCHEDULES) {
         printf("Cannot add more schedules to room %d\n", room->roomNumber);
         return;
@@ -258,7 +258,7 @@ void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const
 
     struct Schedule *sched = &room->schedules[room->scheduleCount++];
     strcpy(sched->day, DAYS[dayIndex]);
-    strcpy(sched->courseCode, courseCode);
+    strcpy(sched->programCode, courseCode);
     strcpy(sched->time, time);
 }
 /**
@@ -383,7 +383,7 @@ void printSelectedRoom(struct Rooms* room) {
         printf("%d.  %s, %s at %s\n",
                i,
                room->schedules[i].day,
-               room->schedules[i].courseCode,
+               room->schedules[i].programCode,
                room->schedules[i].time);
     }
 }
@@ -413,7 +413,7 @@ void _saveCurrentChanges(struct Buildings *current) {
                     break;
                 }
             }
-            fprintf(savePTR, "%d, %s, %s\n", dayIndex, room->schedules->courseCode, room->schedules->time);
+            fprintf(savePTR, "%d, %s, %s\n", dayIndex, room->schedules->programCode, room->schedules->time);
         }
         fprintf(savePTR, "\n");
         room = room->next;
@@ -448,7 +448,7 @@ void _saveLastChanges(struct Buildings *current) {
                 }
             }
 
-            fprintf(changesPTR, "%d, %s, %s\n", dayIndex, room->schedules->courseCode, room->schedules->time);
+            fprintf(changesPTR, "%d, %s, %s\n", dayIndex, room->schedules->programCode, room->schedules->time);
         }
         fprintf(changesPTR, "\n");
         room = room->next;
@@ -459,13 +459,13 @@ void _saveLastChanges(struct Buildings *current) {
 void editRoomSchedule(struct Rooms *room) {
     int rowToEdit;
     for(int row=0; row < room->scheduleCount; row++) {
-        printf("%d. %s, %s %s\n", row, room->schedules[row].day, room->schedules[row].courseCode, room->schedules[row].time);
+        printf("%d. %s, %s %s\n", row, room->schedules[row].day, room->schedules[row].programCode, room->schedules[row].time);
     }
     printf("Enter Row to edit");
     scanf("%d", &rowToEdit);
 
     struct Schedule *current = &room->schedules[rowToEdit];
-    printf("%s, %s, %s\n", current->day, current->courseCode, current->time);
+    printf("%s, %s, %s\n", current->day, current->programCode, current->time);
     printf("What do you want to delete: [d]day, [c]oursecode, [t]ime, [a]ll");
     char option;
     char day[20], coursecode[10], time[20];
@@ -479,7 +479,7 @@ void editRoomSchedule(struct Rooms *room) {
         case 'c':
             printf("Enter CourseCode");
             scanf("%s", coursecode);
-            strcpy(current->courseCode, coursecode);
+            strcpy(current->programCode, coursecode);
             break;
         case 't':
             printf("Enter Time");
@@ -492,7 +492,7 @@ void editRoomSchedule(struct Rooms *room) {
             strcpy(current->day, day);
             printf("Enter CourseCode");
             scanf("%s", coursecode);
-            strcpy(current->courseCode, coursecode);
+            strcpy(current->programCode, coursecode);
             printf("Enter Time");
             scanf("%s", time);
             scanf("%s", time);
@@ -564,7 +564,7 @@ void revertChanges(struct Buildings *current) {
 
         if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
         if (currentRm)
-            addSchedule(currentRm, dayIndex, courseCode, time);
+            _loadSched(currentRm, dayIndex, courseCode, time);
     }
     _saveCurrentChanges(current);
     fclose(revertPtr);
@@ -824,7 +824,7 @@ void deleteRoomSchedule(struct Rooms *room) {
         printf("%d.  %s, %s at %s\n",
                i,
                room->schedules[i].day,
-               room->schedules[i].courseCode,
+               room->schedules[i].programCode,
                room->schedules[i].time);
     }
 }
@@ -948,14 +948,14 @@ void addRoomSchedule(struct Rooms* room) {
     // Store add new Datas to the array of Schedule structures of the current Room structure passed
     struct Schedule *sched = &room->schedules[room->scheduleCount++];
     strcpy(sched->day, day);
-    strcpy(sched->courseCode, coursecode);
+    strcpy(sched->programCode, coursecode);
     strcpy(sched->time, time);
 
     for (int i = 0; i < room->scheduleCount; i++) 
         printf("%d.  %s, %s at %s\n",
                i,
                room->schedules[i].day,
-               room->schedules[i].courseCode,
+               room->schedules[i].programCode,
                room->schedules[i].time);
 }
 
