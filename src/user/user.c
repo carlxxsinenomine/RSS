@@ -309,7 +309,7 @@ int SelectPrompt(WINDOW *win){
 		user_input[i]='\0';
 
         //Handles user input
-		if(user_input && i>0){
+		if(i>0){
 			delwin(sub);
 			return atoi(user_input);
 		}
@@ -508,14 +508,14 @@ void _loadSched(struct Rooms *room, int dayIndex, const char *programCode, const
  */
 void printSched(WINDOW *win,int height,int width,struct Building *building, struct Rooms* room) {
     //Window size for schedule
-    int sched_height=height/1.5;
+    int sched_height=height/1.2;
     int sched_width=width/2;
 
     int sched_y=(height-sched_height)/2;
     int sched_x=(width-sched_width)/2+1;
 
     //Generate window size for schedule with start x and start y pos
-    WINDOW *sched_win=newwin(sched_height,sched_width-2,sched_y,sched_x-1);
+    WINDOW *sched_win=newwin(sched_height,sched_width-2,sched_y,sched_x);
     if(!sched_win){
 		printf("Failed to load screen\n");
 		exit(1);
@@ -527,9 +527,10 @@ void printSched(WINDOW *win,int height,int width,struct Building *building, stru
     mvwprintw(sched_win,sched_height-3,(sched_width-strlen(exit))/2,"%s",exit);
 
     //Status bar for specific room
-    char cur_room_status[60];
+    char cur_room_status[70];
+    int currentBuildingNumber = building->buildingNumber;
     int currentRoomNumber = room->roomNumber;
-    sprintf(cur_room_status,"User/Buildings/Rooms/Building/Room %d",currentRoomNumber);
+    sprintf(cur_room_status,"User/Buildings/Rooms/Building %d/Room %d",currentBuildingNumber,currentRoomNumber);
     status_bar(sched_win,cur_room_status);
 
     struct Rooms *current = building->head; 
@@ -539,8 +540,8 @@ void printSched(WINDOW *win,int height,int width,struct Building *building, stru
 
     //Header for schedule
     const char *sched_header[]={
-            "Day                    Program Code                  Time",
-            "--------------------------------------------------------------------"
+        "Day                    Program Code                  Time",
+        "--------------------------------------------------------------------"
     };
 
     //Print line by line of constant sched_header
