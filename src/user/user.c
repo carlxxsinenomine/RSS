@@ -210,7 +210,7 @@ void user_scr(void){
                         break;
                     }
                     else{
-                        printSched(room_win,height,width,selectedBuilding,selectedRoom);
+                        printSched(room_win,height,window_width,selectedBuilding,selectedRoom);
                     }
                 }
                 else{
@@ -509,10 +509,10 @@ void _loadSched(struct Rooms *room, int dayIndex, const char *programCode, const
 void printSched(WINDOW *win,int height,int width,struct Building *building, struct Rooms* room) {
     //Window size for schedule
     int sched_height=height/1.2;
-    int sched_width=width/2;
+    int sched_width=width;
 
     int sched_y=(height-sched_height)/2;
-    int sched_x=(width-sched_width)/2+1;
+    int sched_x=(width/2)+1;
 
     //Generate window size for schedule with start x and start y pos
     WINDOW *sched_win=newwin(sched_height,sched_width-2,sched_y,sched_x);
