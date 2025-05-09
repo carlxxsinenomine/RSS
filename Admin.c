@@ -43,7 +43,7 @@ void printSelectedRoom(struct Rooms* room);
 void _saveCurrentChanges(struct Buildings *current);
 void _saveLastChanges(struct Buildings *current);
 void editRoomSchedule(struct Rooms *room);
-void printLastChanges(struct Buildings *building);
+void printLastChanges(struct Buildings *building, struct Rooms *room);
 void addRoom(struct Buildings *building);
 void addBuilding();
 void deleteRoomSchedule(struct Rooms *room);
@@ -63,7 +63,6 @@ int main() {
     int bNumber, maxRooms;
     char line[100];
     char buildingText[100];
-    char option;
 
     LOBPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "rt");
     if (LOBPtr == NULL) {
@@ -133,82 +132,92 @@ int main() {
     fclose(LOBPtr);
     // Sort each schedules per buildings and rooms
     while(1) {
-        printf("\n\nChoose [a]dd Schedule, add b[u]ilding, edi[t] building, [d]elete Schedule, [e]dit Schedule, [p]rint Room Schedule, pr[i]nt last changes, re[v]ert last changes [q]uit: ");
-        scanf(" %c", &option);
-        if(option == 'q') break;
-
+        char option;
+        //printf("\n\nChoose [a]dd Schedule, add b[u]ilding, edi[t] building, [d]elete Schedule, [e]dit Schedule, [p]rint Room Schedule, pr[i]nt last changes, re[v]ert last changes [q]uit: ");
+        // printf("[1] View Buildings\n[2] Add Building\n[3] Edit Building\n[4] Delete Building\n");
         printBuildings();
-        if(option == 'u') {
+        printf("[1] Add Building:\n[2] Edit Building:\n[3] Delete Building:\n[4] View Building:\n");
+        scanf(" %c", &option);
+        if(!bytes_read && option != '1') {printf("Buildings unavailable, please add buildings first."); continue;}
+        if(option == 'q' || option == 'Q') break; // if shift+x
+
+        if(option == '1') {
             addBuilding();
             continue;
         }
 
-        if(!bytes_read) {
-            printf("Buildings unavailable, please add buildings first.");
-            continue;
+        int bNum;
+        struct Buildings* selectedBuilding;
+        printf("Select Building: ");
+        scanf("%d", &bNum);
+        selectedBuilding = selectBuilding(bNum);
+
+        switch(option) {
+            case '2':
+                editBuilding(selectedBuilding);
+                continue;
+            case '3':
+                deleteBuilding(selectedBuilding, bNum);
+                continue;
+            case '4':
+                printRooms(selectedBuilding);
+                break;
+            default:
+                continue;
         }
 
-        printf("Choose Building: \n");
-        int bNum;
-        scanf("%d", &bNum);
-        struct Buildings* selectedBuilding = selectBuilding(bNum);
-
+        printf("[1] Add Room:\n[2] Delete Room:\n[3] Edit Room:\n[4] View Room:\n");
+        scanf(" %c", &option);
         int roomOfChoice;
-        struct Rooms* selectedRoom = NULL;
+        printRooms(selectedBuilding);
+        printf("Select Room: ");
+        scanf("%d", &roomOfChoice);
+        struct Rooms* selectedRoom = selectRoom(roomOfChoice, selectedBuilding);
+
         switch (option) {
-            case 'r': // Add Room
+            case '1': // Add Room
                 _saveLastChanges(selectedBuilding);
                 addRoom(selectedBuilding);
                 _saveCurrentChanges(selectedBuilding);
                 continue;
-            case 'i':
-                printLastChanges(selectedBuilding);
-                continue;
-            case 'v':
-                revertChanges(selectedBuilding);
-                continue;
-            case 't':
-                _saveLastChanges(selectedBuilding);
-                editBuilding(selectedBuilding);
-                _saveCurrentChanges(selectedBuilding);
-                continue;
-            case 's':
-                _saveLastChanges(selectedBuilding);
-                deleteBuilding(selectedBuilding, bNum);
-                _saveCurrentChanges(selectedBuilding);
-                continue;
-            case 'o': 
+            case '2':
                 _saveLastChanges(selectedBuilding);
                 deleteRoom(selectedBuilding);
                 _saveCurrentChanges(selectedBuilding);
                 continue;
+            case '3':
+                _saveLastChanges(selectedBuilding);
+                editBuilding(selectedBuilding);
+                _saveCurrentChanges(selectedBuilding);
+                continue;
+            case '4':
+                printSelectedRoom(selectedRoom);
+                break;
+            default:
+                break;
         }
 
-        printRooms(selectedBuilding);
-        printf("Enter Room of choice: ");
-        scanf("%d", &roomOfChoice);
-        selectedRoom = selectRoom(roomOfChoice, selectedBuilding);
-
+        printf("[1] Add Schedule:\n[2] Delete Schedule:\n[3] Edit Schedule:\n[4] Print Last Changes:\n");
+        scanf(" %c", &option);
         // kulang pa ng edit
         switch (option) {
-            case 'a': // Add Room Sched
+            case '1': // Add Room Sched
                 _saveLastChanges(selectedBuilding);
                 addRoomSchedule(selectedRoom);
                 _saveCurrentChanges(selectedBuilding);
                 break;
-            case 'd': // Delete Room Sched
+            case '2': // Delete Room Sched
                 _saveLastChanges(selectedBuilding);
-                printSelectedRoom(selectedRoom);
                 deleteRoomSchedule(selectedRoom);
                 _saveCurrentChanges(selectedBuilding);
                 break;
-            case 'p': // Print Room Scheds
-                printSelectedRoom(selectedRoom);
-                break;
-            case 'e': // Edit Room Sched
+            case '3': // Edit Room Sched
                 _saveLastChanges(selectedBuilding);
                 editRoomSchedule(selectedRoom);
                 _saveCurrentChanges(selectedBuilding);
+                break;
+            case '4':
+                printLastChanges(selectedBuilding, selectedRoom);
                 break;
         }
     }
@@ -222,10 +231,10 @@ int main() {
  * @description: Prints the list of Buildingss
  */
 void printBuildings() {
-    if (bHead == NULL) {
-        printf("No rooms in the list.\n");
-        return;
-    }
+    // if (bHead == NULL) {
+    //     printf("No rooms in the list.\n");
+    //     return;
+    // }
 
     struct Buildings *current = bHead;
     printf("Building List:\n");
@@ -518,8 +527,8 @@ void editRoomSchedule(struct Rooms *room) {
 /**
  * dito naiisip ko na ung rooms na may nagawang changes lang iprint will change later
  */
-void printLastChanges(struct Buildings *building) {
-    FILE *lastChanges;
+void printLastChanges(struct Buildings *building, struct Rooms *room) {
+    FILE *lastChanges, *temp;
 
     char strBuildingNumber[5];
     int buildingNumber = building->buildingNumber;
@@ -533,8 +542,23 @@ void printLastChanges(struct Buildings *building) {
 
     // int bulidingNumber, maxRooms, fFloorMax, sFloorMax;
     char line[100];
+    // while(fgets(line, sizeof(line), lastChanges)) {
+    //     printf("%s", line);
+    // }
+    int currentRoom = 0;
     while(fgets(line, sizeof(line), lastChanges)) {
-        printf("%s", line);
+        if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
+            sscanf(line, "Room: %d", &currentRoom);
+            if(currentRoom == room->roomNumber) {
+                while(fgets(line, sizeof(line), lastChanges)) {
+                    if (strstr(line, "Room:")) {
+                        break;
+                    }
+                    printf("%s", line);
+            }   
+            continue;
+        }
+        }
     }
     
 }
@@ -930,9 +954,9 @@ void addRoomSchedule(struct Rooms* room) {
     upToLower(coursecode);
     upToLower(time);
 
-    printf("%s, %s, %s", day, coursecode, time);
-    printf("%s", day);
-    printf("   %s\n", DAYS[0]);
+    // printf("%s, %s, %s", day, coursecode, time);
+    // printf("%s", day);
+    // printf("   %s\n", DAYS[0]);
 
     // Checks if user inputted day exists on the DAYS array.
     for (int i = 0; i <= MAX_DAYS; i++) {
@@ -1004,9 +1028,17 @@ void addRoomSchedule(struct Rooms* room) {
             printf("1Invalid time values, please try again\n");
             addRoomSchedule(room);
         }
+        if(SHI == 12) {
+            printf("1Invalid time values, please try again\n");
+            addRoomSchedule(room);
+        }
     } else if(!isFAM && !isSAM) {
         if (FHI > 10 || FHI < 1 || SHI > 10 || SHI < 1) {
             printf("11Invalid time values, please try again\n");
+            addRoomSchedule(room);
+        }
+        if(SHI == 12) {
+            printf("1Invalid time values, please try again\n");
             addRoomSchedule(room);
         }
     }
