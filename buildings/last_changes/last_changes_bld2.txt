@@ -6,7 +6,6 @@ Room: 102
 0, it2b, 9am-10am
 1, it2b, 9am-10am
 4, it2b, 9am-10am
-5, it2b, 9am-10am
 
 Room: 103
 0, it1a, 9am-10am
