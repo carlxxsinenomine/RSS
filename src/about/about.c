@@ -42,7 +42,7 @@ void about_scr(void){
     const char *about_content[]={
         "The Room Scheduling System is an interactive scheduling program",
         "that gives access to everyone in Bicol University to check",
-        "schedules of rooms. It utilizes ncurses—a header and a text-based",
+        "schedules of rooms. It utilizes ncurses---a header and a text-based",
         "user interface that primarily works on terminals across various",
         "operating systems.",
         "",
