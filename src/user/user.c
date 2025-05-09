@@ -568,7 +568,7 @@ void printSched(WINDOW *win,int height,int width,struct Building *building, stru
     //Only exits when X is pressed
     while (1) {
         ch = wgetch(sched_win);
-        if (toupper(ch) == 'X') {
+        if (toupper(ch) == 'X' || ch==24) {
             break;
         }
         check_winsize(win,height,width/2);
