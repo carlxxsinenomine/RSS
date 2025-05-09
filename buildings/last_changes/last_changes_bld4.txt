@@ -14,6 +14,7 @@ Room: 104
 
 Room: 105
 0, cs1a, 7am-9am
+1, cs1b, 8am-12pm
 
 Room: 106
 0, it2b, 9am-10am

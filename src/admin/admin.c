@@ -32,23 +32,22 @@ struct Buildings {
     struct Buildings *next;
 } *bHead=NULL, *bLast=NULL;
 
-char* WEEK[MAX_DAYS] = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday"};
+char* WEEK[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-int Select_prompt(WINDOW *win);
+int Select_prompt(WINDOW *win,char input_text[]);
 void Print_bldng(WINDOW *win,int height,int width,char status[]);
 void Print_rooms(WINDOW *win,int height,int width,struct Buildings *building,char status[]);
 void Load_sched(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
 struct Buildings* Load_bldngs(int buildingNumber, int maxRms);
 struct Rooms* Load_room(int roomNumber, struct Buildings *currentBuilding);
-struct Rooms* Select_room(int roomNumber, struct Buildings* currentBuilding);
+struct Rooms* Select_room(WINDOW *win,int height,int width,int roomNumber, struct Buildings* currentBuilding);
 struct Buildings* Select_bldng(WINDOW *win,int height,int width,int bNum);
-void Print_selected_room(struct Rooms* room);
+void Print_sched(WINDOW *win,int height,int width,struct Buildings *building, struct Rooms* room);
 void Save_cur_changes(struct Buildings *current);
 void Save_last_changes(struct Buildings *current);
 void Edit_room_schedule(struct Rooms *room);
-void Print_last_changes(struct Buildings *building, struct Rooms *room);
 void addRoom(struct Buildings *building);
-void addBuilding(WINDOW *win);
+int Add_building(WINDOW *win,int height,int width);
 void Del_roomsched(struct Rooms *room);
 void Del_room(struct Buildings* currBuilding);
 void Del_bldng(struct Buildings* currBuilding, int buildingToDelete);
@@ -87,6 +86,7 @@ void admin_scr(void){
         FILE *createFile;
         createFile = fopen("./buildings/current_changes/listOfBuildings.txt", "wt");
         fclose(createFile);
+        return;
     }
 
     int bytes_read = fread(line, 1, sizeof(line), LOBPtr); // check if may laman ang file
@@ -168,19 +168,28 @@ void admin_scr(void){
 
 
     const char *room_nav_text[]={
-    "[1] Add Room   ",
-    "[2] Delete Room",
-    "[3] Edit Room  ",
-    "[4] View Room  ",
-    "[5] Back       "
+        "[1] Add Room   ",
+        "[2] Delete Room",
+        "[3] Edit Room  ",
+        "[4] View Room  ",
     };
     int rnt_row_size=sizeof(room_nav_text)/sizeof(room_nav_text[0]);
+
+    const char *sched_nav_text[]={
+        "[1] Add Schedule      ",
+        "[2] Delete Schedule   ",
+        "[3] Edit Schedule     ",
+        "[4] Print Last Changes"
+    };
+    int snt_row_size=sizeof(sched_nav_text)/sizeof(sched_nav_text[0]);
 
     char ext[]="[X] Exit";
 
     fclose(LOBPtr);
+
+    int flag = 0;
 // Sort each schedules per buildings and rooms
-    while(1) {
+    while(flag!=-1) {
         wclear(win);
         status_bar(win,"Admin");
         wborder(win,'|','|','-','-','+','+','+','+');
@@ -201,91 +210,166 @@ void admin_scr(void){
 
         wrefresh(win);
 
-        int flag = 0;
         int bNum;
         struct Buildings* selectedBuilding;
         struct Rooms* selectedRoom;
+        int buildingChoice;
         int roomOfChoice;
 
-        int ch_bldngs=0;
-        int ch_rooms=0;
+        int ch_bldng=0;
 
-        ch_bldngs=wgetch(win);
+        ch_bldng=wgetch(win);
         if(flag==0){
-            if(!bytes_read && ch_bldngs != '1'){
+            if(!bytes_read && ch_bldng!='1'){
                 const char no_bldng_avail[]="Buildings unavailable, please add buildings first.";
-				mvwprintw(win,1,(width-strlen(no_bldng_avail))/2,"%s",no_bldng_avail);
+                wattrset(win,A_REVERSE);
+				mvwprintw(win,height/2,(width-strlen(no_bldng_avail))/2,"%s",no_bldng_avail);
+                wattrset(win,A_NORMAL);
 				wrefresh(win);
 				napms(2000);
                 break;
             }
 
-            if(ch_bldngs=='1'){
-                addBuilding(win);
-                continue;
+            if(ch_bldng=='1'){
+                Print_bldng(win,height,window_width,"Admin/Add Building");
+                int addBldng=Add_building(win,height,window_width);
+                if(addBldng!=-1){
+                    flag=0;
+                }
             }
-            else if(ch_bldngs=='2'){
+            else if(ch_bldng=='2'){
 
             }
-            else if(ch_bldngs=='3'){
+            else if(ch_bldng=='3'){
 
             }
-            else if(ch_bldngs=='4'){
+            else if(ch_bldng=='4'){
                 Print_bldng(win,height,window_width,"Admin/View Building");
-                int buildingChoice=Select_prompt(win);
+                buildingChoice=Select_prompt(win,"Input Building: ");
                 if(buildingChoice!=-1){
                     selectedBuilding=Select_bldng(win,height,window_width,buildingChoice);
                     if(!selectedBuilding){
                         continue;
                     }
-                    Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/Buildings/Rooms");
                     flag=1;
-                    continue;
-                }
-                else{
-                    continue;
                 }
             }
-            else if(ch_bldngs=='5'){
+            else if(ch_bldng=='5'){
 
             }
-            else if(toupper(ch_bldngs)==('X')){
+
+            else if(toupper(ch_bldng)==('X')){
+                flag=-1;
+                freeAllLists();
+                delwin(win);
                 break;
             }
+            wrefresh(win);
             check_winsize(win,height,window_width);
         }
         while(flag==1){
-            ch_rooms=wgetch(win);
-            if(ch_rooms=='1'){
+            wclear(win);
+            status_bar(win,"Admin/Buildigs/Rooms");
+            wborder(win,'|','|','-','-','+','+','+','+');
 
+            for(int i=0;i<adt_row_size;i++){
+                int len=strlen(admin_text[i]);
+                int tab=(window_width-len)/2;
+                mvwprintw(win,i+3,tab,"%s",admin_text[i]);
+            }
+
+            for(int i=0;i<rnt_row_size;i++){
+                int len=strlen(room_nav_text[i]);
+                int tab=(window_width-len)/2;
+                mvwprintw(win,(height/2)-rnt_row_size+i*2,tab,"%s",room_nav_text[i]);
+            }
+
+            mvwprintw(win,height-4,(window_width-strlen(ext))/2,"%s",ext);
+
+            wrefresh(win);
+
+            int ch_room;
+            ch_room=wgetch(win);
+            if(ch_room=='1'){
                 continue;
             }
-            else if(ch_rooms=='2'){
+            else if(ch_room=='2'){
 
             }
-            else if(ch_rooms=='3'){
+            else if(ch_room=='3'){
 
             }
-            else if(ch_rooms=='4'){
-
+            else if(ch_room=='4'){
+                Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/");
+                int roomChoice=Select_prompt(win,"Input Room: ");
+                if(roomChoice!=-1){
+                    selectedRoom=Select_room(win,height,window_width,roomChoice,selectedBuilding);
+                    if(!selectedRoom){
+                        flag=1;
+                        continue;
+                    }
+                    flag=2;
+                }
             }
-            else if(ch_rooms=='5'){
-
-            }
-            else if(toupper(ch_rooms)==('X')){
+            else if(toupper(ch_room)==('X')){
+                flag=0;
+                selectedBuilding=NULL;
                 break;
             }
+            wrefresh(win);
             check_winsize(win,height,window_width);
+
+            while(flag==2){
+                wclear(win);
+                status_bar(win,"Admin/Buildigs/Rooms/Schedules");
+                wborder(win,'|','|','-','-','+','+','+','+');
+    
+                for(int i=0;i<adt_row_size;i++){
+                    int len=strlen(admin_text[i]);
+                    int tab=(window_width-len)/2;
+                    mvwprintw(win,i+3,tab,"%s",admin_text[i]);
+                }
+    
+                for(int i=0;i<snt_row_size;i++){
+                    int len=strlen(sched_nav_text[i]);
+                    int tab=(window_width-len)/2;
+                    mvwprintw(win,(height/2)-rnt_row_size+i*2,tab,"%s",sched_nav_text[i]);
+                }
+    
+                mvwprintw(win,height-4,(window_width-strlen(ext))/2,"%s",ext);
+    
+                wrefresh(win);
+    
+                int ch_sched;
+                ch_sched=wgetch(win);
+                if(ch_sched=='1'){
+    
+                    continue;
+                }
+                else if(ch_sched=='2'){
+    
+                }
+                else if(ch_sched=='3'){
+    
+                }
+                else if(ch_sched=='4'){
+                    Print_sched(win,height,window_width,selectedBuilding,selectedRoom);
+                }
+                else if(toupper(ch_sched)==('X')){
+                    flag=1;
+                    selectedRoom=NULL;
+                    break;
+                }
+                wrefresh(win);
+                check_winsize(win,height,window_width);
+            }
         }
-		
         wrefresh(win);
 		check_winsize(win,height,window_width);
     }
-    freeAllLists();
-    delwin(win);
 }
 
-int Select_prompt(WINDOW *win){
+int Select_prompt(WINDOW *win,char input_text[]){
 	noecho();
 
     //Get win size
@@ -311,7 +395,7 @@ int Select_prompt(WINDOW *win){
         //Set default window style
 		box(sub,0,0);
 		mvwprintw(sub,0,2,"[CRTL + X] Exit");
-		mvwprintw(sub,1,1,"Input: ");
+		mvwprintw(sub,1,1,"%s",input_text);
 
 		i=0;
 
@@ -442,7 +526,7 @@ void Print_rooms(WINDOW *win,int height,int width,struct Buildings *building,cha
     //Status bar for specific building number
     char cur_bldg_status[50];
     int currentBuildingNumber = building->buildingNumber;
-    sprintf(cur_bldg_status,"%s/Building %d",status,currentBuildingNumber);
+    sprintf(cur_bldg_status,"%s/Building %d/Rooms",status,currentBuildingNumber);
     status_bar(win,cur_bldg_status);
 
     struct Rooms *current = building->head;
@@ -550,7 +634,7 @@ struct Rooms* Load_room(int roomNumber, struct Buildings *currentBuilding) {
  * @parameter: Accepts an INt, Buildings Structure
  * @description: returns a Rooms Structure selected by the user for purposes such as Printing, Updating, Deleting of Room
  */
-struct Rooms* Select_room(int roomNumber, struct Buildings* currentBuilding) {
+struct Rooms* Select_room(WINDOW *win,int height,int width,int roomNumber,struct Buildings* currentBuilding) {
     struct Rooms* current = currentBuilding->head;
     while (current != NULL) {
         if (current->roomNumber == roomNumber) { // if val of current->roomNumber is equal to current edi same room
@@ -559,6 +643,15 @@ struct Rooms* Select_room(int roomNumber, struct Buildings* currentBuilding) {
 
         if (roomNumber > currentBuilding->last->roomNumber) {
             return currentBuilding->last;
+        }
+        if (current->next==NULL){
+            const char inrn[]="Invalid Room Number";
+            wattrset(win,A_REVERSE);
+			mvwprintw(win,height/2,(width-strlen(inrn))/2,"%s",inrn);
+            wattrset(win,A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            return NULL;
         }
         current = current->next; // Iterate thruogh the next List
     }
@@ -598,22 +691,114 @@ struct Buildings* Select_bldng(WINDOW *win,int height,int width,int bNum) {
  * @description: The Structure Arguments are the structures acquired from the selectBuilding and selectRoom functions, the printSelectedRoom
  * function prints the data contents of an specific room.
  */
-void Print_selected_room(struct Rooms* room) {
+void Print_sched(WINDOW *win,int height,int width,struct Buildings *building, struct Rooms* room) {
     int currentRoomNumber = room->roomNumber;
-    printf("Room Number: %d\n", currentRoomNumber);
-    // printf("Room Sched Count: %d", room->scheduleCount);
-    if (room == NULL) {
-        printf("No rooms in the list.\n");
-        return;
-    }
+    int currentBuildingNumber = building->buildingNumber;
+
+     //Window size for schedule
+     int sched_height=height/1.2;
+     int sched_width=(width-1)/2;
+ 
+     int sched_y=(height-sched_height)/2;
+ 
+     //Generate window size for schedule with start x and start y pos
+     WINDOW *cur_sched=newwin(sched_height,sched_width,sched_y,width-sched_width);
+     WINDOW *last_sched=newwin(sched_height,sched_width,sched_y,width-1);
+
+     if(!cur_sched || !last_sched){
+         printf("Failed to load screen\n");
+         exit(1);
+     }
+     
+     wborder(cur_sched,'|','|','-','-','+','+','+','+');
+     wborder(last_sched,'|','|','-','-','+','+','+','+');
+ 
+
+     //Status bar for specific room
+    char cur_status[70],last_status[70];
+
+    sprintf(cur_status,"Current Schedule: Building %d/Room %d",currentBuildingNumber,currentRoomNumber);
+    sprintf(last_status,"Last Changes: Building %d/Room %d",currentBuildingNumber,currentRoomNumber);
+    
+    status_bar(cur_sched,cur_status);
+    status_bar(last_sched,last_status);
+
+    const char *sched_header[]={
+        "Day       Program Code           Time",
+        "---------------------------------------------"
+    };
+    int sched_header_size=sizeof(sched_header)/sizeof(sched_header[0]);
+
+	for(int i=0;i<sched_header_size;i++){
+		int len=strlen(sched_header[i]);
+		mvwprintw(cur_sched,4+i,(sched_width-len)/2,"%s",sched_header[i]);
+        mvwprintw(last_sched,4+i,(sched_width-len)/2,"%s",sched_header[i]);
+	}
 
     for (int i = 0; i < room->scheduleCount; i++) {
-        printf("%d.  %s, %s at %s\n",
-               i,
-               room->schedules[i].day,
-               room->schedules[i].programCode,
-               room->schedules[i].time);
+        int day_len=strlen(room->schedules[i].day);
+        int cc_len=strlen(room->schedules[i].programCode);
+        int time_len=strlen(room->schedules[i].time);
+        int total_len=day_len+cc_len+time_len;
+        mvwprintw(cur_sched,6+i,(sched_width-strlen(sched_header[0]))/2,"%-10s%-23s%s",
+           room->schedules[i].day,
+           room->schedules[i].programCode,
+           room->schedules[i].time);
+}
+
+    FILE *lastChanges, *temp;
+    char strBuildingNumber[5];
+    int buildingNumber = building->buildingNumber;
+    sprintf(strBuildingNumber, "%d", buildingNumber); // convert into str
+    char lastChangesDir[125] = "./buildings/last_changes/last_changes_bld";
+    strcat(lastChangesDir, strBuildingNumber);
+    strcat(lastChangesDir, ".txt");
+
+    lastChanges = fopen(lastChangesDir, "rt");
+
+    char line[100];
+   
+    int currentRoom = 0;
+    while(fgets(line, sizeof(line), lastChanges)) {
+        if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
+            sscanf(line, "Room: %d", &currentRoom);
+            if(currentRoom == room->roomNumber) {
+                while(fgets(line, sizeof(line), lastChanges)) {
+                    int i=0;
+                    if (strstr(line, "Room:")) {
+                        break;
+                    }
+                    if (strlen(line)>1){
+                        int dayIndex;
+                        char courseCode[21], time[21];
+                        if(sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3){
+                            mvwprintw(last_sched,6+i,(sched_width-strlen(sched_header[0]))/2,"%-10s%-23s%s",
+                            WEEK[dayIndex],
+                            courseCode,
+                            time);
+                        }
+                    }
+                }   
+                break;
+           }
+        }
     }
+
+    wrefresh(cur_sched);
+    wrefresh(last_sched);
+
+    int ch;
+
+    //Only exits when X is pressed
+    while (1) {
+        ch = wgetch(cur_sched);
+        if (toupper(ch) == 'X' || ch==24) {
+            break;
+        }
+        check_winsize(win,height,width);
+    }
+    delwin(cur_sched);
+    delwin(last_sched);
 }
 
 // Save updated version
@@ -727,45 +912,6 @@ void Edit_room_schedule(struct Rooms *room) {
         default: 
             printf("Invalid\n");
     }
-}
-
-/**
- * dito naiisip ko na ung rooms na may nagawang changes lang iprint will change later
- */
-void Print_last_changes(struct Buildings *building, struct Rooms *room) {
-    FILE *lastChanges, *temp;
-
-    char strBuildingNumber[5];
-    int buildingNumber = building->buildingNumber;
-    int maxRooms = building->maxRooms;
-    sprintf(strBuildingNumber, "%d", buildingNumber); // convert into str
-    char lastChangesDir[125] = "./buildings/last_changes/last_changes_bld";
-    strcat(lastChangesDir, strBuildingNumber);
-    strcat(lastChangesDir, ".txt");
-
-    lastChanges = fopen(lastChangesDir, "rt");
-
-    // int bulidingNumber, maxRooms, fFloorMax, sFloorMax;
-    char line[100];
-    // while(fgets(line, sizeof(line), lastChanges)) {
-    //     printf("%s", line);
-    // }
-    int currentRoom = 0;
-    while(fgets(line, sizeof(line), lastChanges)) {
-        if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
-            sscanf(line, "Room: %d", &currentRoom);
-            if(currentRoom == room->roomNumber) {
-                while(fgets(line, sizeof(line), lastChanges)) {
-                    if (strstr(line, "Room:")) {
-                        break;
-                    }
-                    printf("%s", line);
-            }   
-            continue;
-        }
-        }
-    }
-    
 }
 
 void Revert_changes(struct Buildings *current) {
@@ -953,42 +1099,49 @@ void Edit_bldng(struct Buildings *building) {
     }
 }
 
-void addBuilding(WINDOW *win) {
-    int buildingNumber=Select_prompt(win);
+int Add_building(WINDOW *win,int height,int width) {
+    int buildingNumber=Select_prompt(win,"Input Building Number: ");
 
     if(buildingNumber < 1){
-        return;
-    }
-
-    FILE* listOfBuildingsPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "r");
-    if(listOfBuildingsPtr == NULL) {
-        printf("Error opening listOfBuildings.txt\n");
-        return;
+        return -1;
     }
 
     // Check if building already exists
     struct Buildings *current = bHead;
     while(current != NULL) {
         if(current->buildingNumber == buildingNumber) {
-            fclose(listOfBuildingsPtr);
-            return;
+            const char exists[] = "Building already exists";
+            wattrset(win,A_REVERSE);
+			mvwprintw(win,height/2,(width-strlen(exists))/2,"%s",exists);
+            wattrset(win,A_NORMAL);
+            return -1;
         }
         current = current->next;
     }
     
-    int maxRooms;
-    printf("Enter Max Room for this building: ");
-    scanf("%d", &maxRooms);
+    int maxRooms=Select_prompt(win,"Input Max Room: ");
     if(maxRooms < 1) {
-        fclose(listOfBuildingsPtr);
-        return;
+        return -1;
     }
+    
+    FILE* listOfBuildingsPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "r");
+    if(listOfBuildingsPtr == NULL) {
+        const char no_file[]="Error opening listOfBuildings.txt";
+        wattrset(win,A_REVERSE);
+        mvwprintw(win,height/2,(width-strlen(no_file))/2,"%s",no_file);
+        wattrset(win,A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        return -1;
+    }
+    rewind(listOfBuildingsPtr);
+
     // Save current contents to changes file
     FILE *LOBuildingsChanges = fopen("./buildings/last_changes/listOfBuildingsChanges.txt", "wt");
     if(LOBuildingsChanges == NULL) {
         printf("Error opening changes file\n");
         fclose(listOfBuildingsPtr);
-        return;
+        exit(1);
     }
 
     char line[100];
@@ -1000,6 +1153,8 @@ void addBuilding(WINDOW *win) {
     struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
     newBuilding->buildingNumber = buildingNumber;
     newBuilding->maxRooms = maxRooms;
+    newBuilding->head = NULL;
+    newBuilding->last = NULL;
     newBuilding->next = NULL;
     newBuilding->prev = NULL;
 
@@ -1032,11 +1187,29 @@ void addBuilding(WINDOW *win) {
         }
     }
 
+    char bldFile[50];
+    sprintf(bldFile, "./buildings/current_changes/bld%d.txt", buildingNumber);
+    FILE* bldPtr = fopen(bldFile, "w");
+    if(!bldPtr) {
+        free(newBuilding);
+        fclose(listOfBuildingsPtr);
+        const char no_file[] = "Error creating building file";
+        wattrset(win,A_REVERSE);
+        mvwprintw(win, height/2, (width-strlen(no_file))/2, "%s", no_file);
+        wattrset(win,A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        return -1;
+    }
+    fprintf(bldPtr, "Building No: %d\n", buildingNumber);
+    fprintf(bldPtr, "Max Rooms: %d\n", maxRooms);
+    fclose(bldPtr);
+
     FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
     if(outFile == NULL) {
         printf("Error reopening file for writing\n");
         fclose(listOfBuildingsPtr);
-        return;
+        exit(1);
     }
 
     current = bHead;
