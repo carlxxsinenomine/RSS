@@ -1,16 +1,17 @@
 Building No: 2
 Max Rooms: 18
 Room: 101
+0, it, 9am-12am
 
 Room: 10
-1, cs3b, 12am-1am
 0, it2b, 9am-10am
-5, bio1a, 10am-1pm
-4, skibidi, 1am-3pm
+1, it2b, 9am-10am
+4, it2b, 9am-10am
+5, it2b, 9am-10am
 
 Room: 103
 0, it1a, 9am-10am
-1, it1a, 9am-12pm
+1, it1a, 9am-10am
 
 Room: 104
 0, it2b, 9am-10am

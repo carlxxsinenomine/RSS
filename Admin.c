@@ -1102,7 +1102,7 @@ void sortSchedules(struct Rooms* room) {
 void freeAllLists() {
     struct Buildings* currentBuilding = bHead;
     while (currentBuilding!=NULL) {
-        struct Rooms* currentRooms = currentBuilding;
+        struct Rooms* currentRooms = currentBuilding->head;
         while (currentRooms!=NULL) {
             struct Rooms* temp = currentRooms;
             currentRooms = currentRooms->next;
