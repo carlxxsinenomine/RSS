@@ -1,4 +1,4 @@
-#include <ncurses.h>
+#include <ncurses\ncurses.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -40,6 +40,24 @@ void about_scr(void){
     }
 
     const char *about_content[]={
+        "The Room Scheduling System is an interactive scheduling program",
+        "that gives access to everyone in Bicol University to check",
+        "schedules of rooms. It utilizes ncurses—a header and a text-based",
+        "user interface that primarily works on terminals across various",
+        "operating systems.",
+        "",
+        "Additionally, with all the topics we learned from Computer",
+        "Programming 1 to 2 classes, we implemented concepts such as loops,",
+        "selection, sorting algorithms, structs, linked lists, pointers,",
+        "and other relevant topics.",
+        "",
+        "This program has features such as a user interface, an admin page,",
+        "and a user page. The user page allows viewing available room",
+        "schedules across different buildings. The admin page allows users",
+        "to add, edit, and delete room schedules.",
+        "",
+        "",
+        "",
         "Authors:",
         "",
         "Margarata, Sean Eric",
