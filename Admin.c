@@ -257,7 +257,7 @@ int main() {
         if(flag != 0) {
             printf("[1] Back"); 
             scanf(" %c", &option);
-            if (!isBack) {
+            if (option == '1') {
                 flag--;
             }
         }
