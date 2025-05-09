@@ -6,9 +6,9 @@
 #include "screens.h"
 #include "global.h"
 
-//Function initialization
+//Function declaration
 int manual(int argc,char *argv[]);
-int auth(WINDOW *win,const char *username);
+int auth(WINDOW *win);
 
 /* @date_added: 04/10/2025
  * @return_type: int
@@ -16,14 +16,17 @@ int auth(WINDOW *win,const char *username);
  * @description: Main window. Utilizes every function defined.
  */
 int main(int argc,char *argv[]){
+	//Handles manual error
 	if(!manual(argc,argv)) {
 		return 0;
 	};
 
+	//Terminal essentials
 	initscr();
 	noecho();
 	curs_set(0);
 
+	//Get terminal size
 	int height,width;
 	getmaxyx(stdscr,height,width);
 
@@ -54,6 +57,7 @@ int main(int argc,char *argv[]){
 		"Ncurses in seek of room management and availability directly from the terminal.",
 	};
 
+	//Print line by line of constant title
 	int title_row_size=sizeof(title)/sizeof(title[0]);
 	for(int i=0;i<title_row_size;i++){
 		if(i==0){
@@ -76,6 +80,7 @@ int main(int argc,char *argv[]){
 		"[4] Exit "
 	};
 
+	//Print line by line of constant menu
 	int menu_row_size=sizeof(menu)/sizeof(menu[0]);
 	for(int i=0;i<menu_row_size;i++){
 		int len=strlen(menu[i]);
@@ -86,7 +91,7 @@ int main(int argc,char *argv[]){
 
 	int ch=0;
 
-	//Calls screen functions
+	//Calls screen functions from different files
 	do{
 		ch=wgetch(win);
 		switch(ch){
@@ -94,7 +99,7 @@ int main(int argc,char *argv[]){
 				user_scr();
 				break;
 			case '2':
-				if(auth(win,"admin")){
+				if(auth(win)){
 					admin_scr();
 				}
 				else{
@@ -113,9 +118,10 @@ int main(int argc,char *argv[]){
 		wrefresh(win);
 		check_winsize(win,height,window_width);
 	}while(ch!='4');
-
-        endwin();
-        return 0;
+	
+	//End of program
+	endwin();
+    return 0;
 }
 /* @date_added: 04/30/2025
  * @params: argc, argv
@@ -136,21 +142,22 @@ int manual(int argc,char *argv[]){
 		"Note before proceeding:",
 		"- Size of terminal is at least 37X104:",
 		"\tResize your window by: zooming out or resizing your terminal window",
-		"- src/passwords must contain admin.txt, and users.txt or it will create an empty file. Program will not continue unless there is a text within it.",
+		"- src/passwords must contain admin.txt otherwise it will create an empty file. Empty file writes \"admin\" as default. Program will not continue unless there is a text within it.",
 		"\tExample: admin123\n\t\t admin256",
 		"\nNavigation:",
-		"[1] User, [2] Admin, [3] About, [4] Exit",
-		"\nUser:",
-		"User->Auth->Buildings->Rooms->Schedule",
-		"Auth: (Input password from src/passwords), Ctrl+X to exit",
-		"Buildings: Type building number",
-		"Rooms: Type room number",
-		"Schedule: Crtl+X to exit",
-		"\nAdmin:",
-		"Admin->Auth->Buildings->Rooms->Schedule",
-		"Auth: (Input password from src/passwords), Ctrl+X to exit",
-		"Buildings:]",
-		"",
+		"\t[1] User:",
+		"\t\tUser->Buildings->Rooms->Schedule",
+		"\t\tBuildings: Type building number and press Enter to access, Crtl+X to exit",
+		"\t\tRooms: Type room number and press Enter to access, Crtl+X to exit",
+		"\t\tSchedule: Press X to exit",
+		"\n\t[2] Admin:",
+		"\t\tAdmin->Auth->Buildings->Rooms->Schedule",
+		"\t\tAuth: Password is retrieve from src/passowords, Ctrl+X to exit",
+		"\t\tBuildings:",
+		"\n\t[3] About:",
+		"\t\tPres X to exit",
+		"\n\t[4] Exit:",
+		"\t\tPress 4 to Exit"
 	};
 
 	if (argc==1) {
@@ -174,12 +181,14 @@ int manual(int argc,char *argv[]){
  * @params: window, password
  * @description: Creates a window to accept user input for password. Verifies password for program to continue.
  */
-int auth(WINDOW *win,const char *user_type){
+int auth(WINDOW *win){
 	noecho();
 
+	//Get window size
 	int height,width;
 	getmaxyx(win,height,width);
 	
+	//Creates screen for auth
 	WINDOW *sub=newwin(3,width-2,height/2,(width/2)+1);
 	
 	if(!sub){
@@ -187,14 +196,9 @@ int auth(WINDOW *win,const char *user_type){
         	exit(1);
     	}
 
-	//Decide what filename to use that will decide the user_type
+	//File path for admin.txt
 	const char *Fname;
-	if(strcmp(user_type,"admin")==0){
-		Fname="src/passwords/admin.txt";
-	}
-	else if(strcmp(user_type,"users")==0){
-		Fname="src/passwords/users.txt";
-	}
+	Fname="src/passwords/admin.txt";
 
 	keypad(sub,TRUE);
 
@@ -202,14 +206,15 @@ int auth(WINDOW *win,const char *user_type){
 	int i;
 	int ch;
 
+	//Loop for password
 	while(1){
 		box(sub,0,0);
 		mvwprintw(sub,0,2,"[CRTL + X] Cancel");
-		mvwprintw(sub,1,1,"Enter User password: ");
+		mvwprintw(sub,1,1,"Enter password: ");
 
 		i=0;
 
-		//While user don't press enter
+		//While user don't press enter and i does not exceed 19 (19 ensures that the user can input upto 19)
 		while((ch=wgetch(sub))!='\n' && i<19){
 			int y,x;
 			getyx(sub,y,x);
@@ -229,6 +234,7 @@ int auth(WINDOW *win,const char *user_type){
 				delwin(sub);
 				return 0;
 			}
+			//If user press space then exit
 			else if(ch==' '){
 				const char no_space[]="Password should not contain spaces";
 				mvwprintw(sub,1,(width-strlen(no_space))/2,"%s",no_space);
@@ -238,6 +244,7 @@ int auth(WINDOW *win,const char *user_type){
 			}
 			//Printable ASCII characters are only within the range of 32-126
 			else if(ch>=32 && ch<=126){
+				//Handles when i<18 only prints when characters at input_pass buffer is i<18
 				if(i<18){
 					input_pass[i]=ch;
 					mvwprintw(sub,y,x,"%c",ch);
@@ -249,25 +256,32 @@ int auth(WINDOW *win,const char *user_type){
 		//Terminates the buffer
 		input_pass[i]='\0';
 
+		//Open Fname (admin.txt)
 		FILE *pw=fopen(Fname,"rt");
+		//Handles pw error if file is not found
 		if(!pw){
 			const char cnof[]="Could not open file";
-			box(sub,0,0);
 			mvwprintw(sub,1,(width-strlen(cnof))/2,"%s",cnof);
 			wrefresh(sub);
-			napms(2000);
+			napms(1000);
 			
+			//Creates file if Fname does not exist
 			pw=fopen(Fname,"wt");
-			const char cefa[]="Created empty file at src/passwords";
+			fprintf(pw,"admin");
+			fclose(pw);
+			const char cefa[]="Created empty file at src/passwords. Default password: admin";
 			mvwprintw(sub,1,(width-strlen(cefa))/2,"%s",cefa);
 			wrefresh(sub);
-			napms(1000);
+			napms(2000);
 			return 0;
 		}
 
+		//Verification var if password is correct
 		int verification=0;
+		//Line buffer for file_pass (18 + NUL terminator)
 		char file_pass[19];
 
+		//Compares the password input line by line from Fname
 		while(fgets(file_pass,sizeof(file_pass),pw)!=NULL){
 			file_pass[strcspn(file_pass,"\r\n")]='\0';
 			if(strcmp(input_pass,file_pass)==0){
@@ -278,6 +292,7 @@ int auth(WINDOW *win,const char *user_type){
 		
 		fclose(pw);
 
+		//Password verification returns 1 if verified
 		if(verification){
 			delwin(sub);
 			return 1;

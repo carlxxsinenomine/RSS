@@ -11,7 +11,7 @@
 
 struct Schedule {
     char day[10];
-    char courseCode[20];
+    char programCode[20];
     char time[20];
 };
 
@@ -37,17 +37,16 @@ const char* DAYS[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Fri
 
 //Function declaration
 int SelectPrompt(WINDOW *win);
-struct Building *createBuilding(int bldgNum);
-void printBuildingNumber(WINDOW *win,int width,int i);
-struct Building *selectBuilding(int bldgNum);
-void printSelectedBuilding(struct Building *building);
-void printRooms();
-struct Rooms* createRoom(struct Building *building, int roomNumber);
-void printRoomNumber(struct Building *building);
-struct Rooms* selectRoom(struct Building *building, int roomNumber);
-void printSelectedRoom(struct Building *building, struct Rooms* room);
-void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
+struct Building *_loadBuilding(int bldgNum);
+void printBuildingNumber(WINDOW *win,int width);
+struct Building *selectBuilding(WINDOW *win,int height,int width,int bldgNum);
+struct Rooms* _loadRoom(struct Building *building, int roomNumber);
+void printRoomNumber(WINDOW *win,int width,struct Building *building);
+struct Rooms* selectRoom(WINDOW *win,int height,int width,struct Building *building, int roomNumber);
+void _loadSched(struct Rooms *room, int dayIndex, const char *programCode, const char *time);
+void printSched(WINDOW *win,int height,int width,struct Building *building, struct Rooms* room);
 void upToLower(char word[10]);
+void clearBuildingList(void);
 
 /* @date_added: 04/15/2025
  * @return_type: void
@@ -55,6 +54,7 @@ void upToLower(char word[10]);
  * @description: Makes a new window for user screen
  */
 void user_scr(void){
+    //Get window size
     int height,width;
     getmaxyx(stdscr,height,width);
 
@@ -80,8 +80,6 @@ void user_scr(void){
     if (listOfBuildingsPtr == NULL) {
         delwin(win);
     }
-
-    status_bar(win,"User");
 
     const char *bldng[]={
         "____  _   _ ___ _     ____ ___ _   _  ____ ____  ",
@@ -110,7 +108,7 @@ void user_scr(void){
         fgets(line, sizeof(line), fptr);
         sscanf(line, "Max Rooms: %d", &maxRooms);
 
-        struct Building *building = createBuilding(bNumber);
+        struct Building *building = _loadBuilding(bNumber);
         struct Rooms *room = NULL;
 
         while(fgets(line, sizeof(line), fptr)) {
@@ -120,16 +118,16 @@ void user_scr(void){
             // If Room: is present on the string
             if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
                 sscanf(line, "Room: %d", &currentRoom);
-                room = createRoom(building, currentRoom);
+                room = _loadRoom(building, currentRoom);
                 continue;
             }
 
             int dayIndex;
-            char courseCode[21], time[21];
+            char programCode[21], time[21];
 
-            if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) {// == 3; if 3 values are read
+            if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, programCode, time) == 3) {// == 3; if 3 values are read
                 if (room) {
-                    addSchedule(room, dayIndex, courseCode, time);
+                    _loadSched(room, dayIndex, programCode, time);
                 }
             }
         }
@@ -138,7 +136,9 @@ void user_scr(void){
     
     int ch=0;
 
+    //Building loop
     while(1){
+        status_bar(win,"User/Buildings");
         wborder(win,'|','|','-','-','+','+','+','+');
 
         for(int i=0;i<bldng_row_size;i++){
@@ -146,59 +146,122 @@ void user_scr(void){
             int tab=(window_width-len)/2;
             mvwprintw(win,i+3,tab,"%s",bldng[i]);
         }
-    
-        int bldng_indent=0;
-        printBuildingNumber(win,window_width,bldng_indent);
+
+        //Prints existing building numbers
+        printBuildingNumber(win,window_width);
 
         wrefresh(win);
 
+        //Prompts building selection
         int buildingChoice=SelectPrompt(win);
 
-        if(!buildingChoice){
+        //Handles building choice error
+        if(buildingChoice!=-1){
+            //Receives building selection
+            struct Building *selectedBuilding = selectBuilding(win,height,window_width,buildingChoice);
+            
+            //Handles select building error
+            if (!selectedBuilding) {
+                break;
+            }
+
+            //Loop for rooms
+            while(1){
+                //Create new window for rooms
+                WINDOW *room_win=newwin(height,window_width,0,width/4);
+
+                if(!room_win){
+                    printf("Failed to load screen\n");
+                    exit(1);
+                }
+
+                wborder(room_win,'|','|','-','-','+','+','+','+');
+
+                status_bar(room_win,"User/Buildings/Rooms");
+
+                const char *rms[]={
+                    "____   ___   ___  __  __ ____   ",
+                    "|  _ \\ / _ \\ / _ \\|  \\/  / ___| ",
+                    "| |_) | | | | | | | |\\/| \\___ \\ ",
+                    "|  _ <| |_| | |_| | |  | |___) |",
+                    "|_| \\_\\\\___/ \\___/|_|  |_|____/ "
+                };
+
+                //Print line by line of constant rms
+                int rms_row_size=sizeof(rms)/sizeof(rms[0]);
+                for(int i=0;i<rms_row_size;i++){
+                    int len=strlen(rms[i]);
+                    int tab=(window_width-len)/2;
+                    mvwprintw(room_win,i+3,tab,"%s",rms[i]);
+                }
+
+                //Print room numbers
+                printRoomNumber(room_win,window_width,selectedBuilding);
+
+                wrefresh(room_win);
+
+                //Prompt for room choice
+                int roomOfChoice=SelectPrompt(win);
+
+                //Handles room choice error
+                if(roomOfChoice!=-1){
+                    struct Rooms* selectedRoom = selectRoom(room_win,height,window_width,selectedBuilding,roomOfChoice);
+                    if (!selectedRoom) {
+                        break;
+                    }
+                    else{
+                        printSched(room_win,height,window_width,selectedBuilding,selectedRoom);
+                    }
+                }
+                else{
+                    break;
+                }
+                wclear(room_win);
+            }
+            
+        }
+        else{
             break;
         }
-        
-        //struct Building *selectedBuilding = selectBuilding(buildingChoice);
-        //printSelectedBuilding(selectedBuilding);
-//
-        //printRoomNumber(selectedBuilding);
-//
-        //int roomOfChoice;
-        //printf("\nEnter room number to view schedule: ");
-        //scanf("%d", &roomOfChoice);
-    //
-        //struct Rooms* selectedRoom = selectRoom(selectedBuilding, roomOfChoice);
-        //printSelectedRoom(selectedBuilding, selectedRoom);
-    
-        check_winsize(win,height,window_width);
         wclear(win);
     }
+    //End of user.c
     fclose(listOfBuildingsPtr);
+    clearBuildingList();
     delwin(win);
 }
 
+/* @date_added: 05/05/2025
+ * @return_type: int
+ * @params: win
+ * @description: Creates new window for prompt
+ */
 int SelectPrompt(WINDOW *win){
 	noecho();
 
+    //Get win size
 	int height,width;
 	getmaxyx(win,height,width);
 	
+    //Creates new window for SelectPrompt
 	WINDOW *sub=newwin(3,width-2,height-4,(width/2)+1);
 	
 	if(!sub){
 		printf("Failed to load screen\n");
         	exit(1);
-    	}
+    }
 
 	keypad(sub,TRUE);
 
+    //User input limits to 10 + NUL terminator (means only 10 digits input)
 	char user_input[11]={0};
 	int i;
 	int ch;
 
 	while(1){
+        //Set default window style
 		box(sub,0,0);
-		mvwprintw(sub,0,2,"[CRTL + X] Cancel");
+		mvwprintw(sub,0,2,"[CRTL + X] Exit");
 		mvwprintw(sub,1,1,"Input: ");
 
 		i=0;
@@ -221,14 +284,15 @@ int SelectPrompt(WINDOW *win){
 			//ASCII value of crtl+x key is 24
 			else if(ch==24){
 				delwin(sub);
-				return 0;
+				return -1;
 			}
+            //If user press space then exit
 			else if(ch==' '){
 				const char no_space[]="Input should not contain spaces";
 				mvwprintw(sub,1,(width-strlen(no_space))/2,"%s",no_space);
 				wrefresh(sub);
 				napms(2000);
-				return 0;
+                return -1;
 			}
 			//Number 0-9 character only
 			else if(ch>='0' && ch<='9'){
@@ -239,11 +303,13 @@ int SelectPrompt(WINDOW *win){
 					wrefresh(sub);
 				}
 			}
+            check_winsize(win,height,width);
 		}
 		//Terminates the buffer
 		user_input[i]='\0';
 
-		if(user_input){
+        //Handles user input
+		if(i>0){
 			delwin(sub);
 			return atoi(user_input);
 		}
@@ -254,11 +320,17 @@ int SelectPrompt(WINDOW *win){
 	keypad(sub,FALSE);
 }
 
-struct Building *createBuilding(int bldgNum){
+/* @date_added: 05/05/2025
+ * @return_type: struct Building
+ * @params: bldgNum
+ * @description: Load buildings
+ */
+struct Building *_loadBuilding(int bldgNum){
     struct Building *newBuilding = (struct Building *) malloc(sizeof(struct Building));
     
     if(newBuilding == NULL){
         printf("Memory allocation failed!\n");
+        exit(1);
     }
 
     newBuilding->buildingNumber = bldgNum;
@@ -277,17 +349,33 @@ struct Building *createBuilding(int bldgNum){
     return newBuilding;
 }
 
-//date added: 04/15
-void printBuildingNumber(WINDOW *win,int width,int i) {
+/* @date_added: date added: 04/15
+ * @ date_edited: 05/05/2025
+ * @return_type: void
+ * @params: win, width
+ * @description: Prints building numbers
+ */
+void printBuildingNumber(WINDOW *win,int width) {
     struct Building *current = bldgHead;
+    int i=0;
+    //Prints to win
     while(current != NULL) {
-        mvwprintw(win,10+i,(width/2)-6,"Building %d i: %d", current->buildingNumber,i);
+        char bldng_line_size[20];
+        int currentBuildingNumber = current->buildingNumber;
+        sprintf(bldng_line_size,"Building %d",currentBuildingNumber);
+        mvwprintw(win,10+i,(width-strlen(bldng_line_size))/2,"%s", bldng_line_size);
         current = current->next;
         i++;
     }
 }
 
-struct Building *selectBuilding(int bldgNum) {
+/* @date_added: date added: 04/15
+ * @ date_edited: 05/05/2025
+ * @return_type: struct Building
+ * @params: win, heightm width, bldgNum
+ * @description: Select building
+ */
+struct Building *selectBuilding(WINDOW *win,int height,int width,int bldgNum) {
     struct Building* current = bldgHead;
     while (current != NULL) {
         if (current->buildingNumber == bldgNum) { // if val of current->buildingNumber is equal to current edi same room
@@ -295,7 +383,12 @@ struct Building *selectBuilding(int bldgNum) {
         }
 
         if (current->next == NULL) {
-            printf("Invalid building number.");
+            const char inbn[]="Invalid Building Number";
+            wattrset(win,A_REVERSE);
+			mvwprintw(win,height/2,(width-strlen(inbn))/2,"%s",inbn);
+            wattrset(win,A_NORMAL);
+            wrefresh(win);
+            napms(2000);
             return NULL;
         }
         current = current->next; // Iterate through the next List
@@ -303,71 +396,19 @@ struct Building *selectBuilding(int bldgNum) {
     return NULL;
 }
 
-void printSelectedBuilding(struct Building *building){
-    int currentBuildingNumber = building->buildingNumber;
-    printf("\nRooms in building %d\n", currentBuildingNumber);
-
-    if(bldgHead == NULL){
-        printf("No available buildings");
-        return;
-    }
-}
-
-//date edited: 04/15
-void printRoomNumber(struct Building *building){
-    struct Rooms *current = building->head; 
-
-    while(current != NULL) {
-        printf("Room %d\n", current->roomNumber);
-        current = current->next;
-    }
-}
-
-void printRooms() {
-    if (head == NULL) {
-        printf("No rooms in the list.\n");
-        return;
-    }
-
-    struct Rooms *current = head;
-    printf("Room List:\n");
-    while (current != NULL) {
-        printf("Room %d:\n", current->roomNumber);
-        
-        //tig ttravese niya ang list
-        for (int i = 0; i < current->scheduleCount; i++) {
-            printf("  %s, %s at %s\n",             
-                   current->schedules[i].day,
-                   current->schedules[i].courseCode,
-                   current->schedules[i].time);
-        }
-        current = current->next;
-    }
-}
-
-void addSchedule(struct Rooms *room, int dayIndex, const char *courseCode, const char *time) {
-    if (room->scheduleCount >= MAX_SCHEDULES) {
-        printf("Cannot add more schedules to room %d\n", room->roomNumber);
-        return;
-    }
-
-    if (dayIndex < 0 || dayIndex >= MAX_DAYS) {
-        printf("Invalid day index: %d\n", dayIndex);
-        return;
-    }
-
-    struct Schedule *sched = &room->schedules[room->scheduleCount++];
-    strcpy(sched->day, DAYS[dayIndex]);
-    strcpy(sched->courseCode, courseCode);
-    strcpy(sched->time, time);
-}
-
-struct Rooms* createRoom(struct Building *_building, int roomNumber) {
+/* @date_added: date added: 04/15
+ * @ date_edited: 05/05/2025
+ * @return_type: struct Rooms
+ * @params: struct Building, roomNumber
+ * @description: Load rooms
+ */
+struct Rooms* _loadRoom(struct Building *_building, int roomNumber) {
 
     struct Rooms* newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
     if (!newRoom) { // if newRoom is NULL
         printf("Memory allocation failed.\n");
         return NULL;
+        exit(1);
     }
 
     newRoom->roomNumber = roomNumber;
@@ -384,8 +425,37 @@ struct Rooms* createRoom(struct Building *_building, int roomNumber) {
     }
     return newRoom;
 }
+
+/* @date_added: date added: 04/15
+ * @ date_edited: 05/05/2025
+ * @return_type: void
+ * @params: win, width, struct Building
+ * @description: Prints room numbers
+ */
+void printRoomNumber(WINDOW *win,int width,struct Building *building){
+    //Status bar for specific building number
+    char cur_bldg_status[50];
+    int currentBuildingNumber = building->buildingNumber;
+    sprintf(cur_bldg_status,"User/Buildings/Rooms/Building %d",currentBuildingNumber);
+    status_bar(win,cur_bldg_status);
+
+    struct Rooms *current = building->head; 
+
+    int i=0;
+    
+    while(current != NULL) {
+        //Print room numbers line by line
+        char room_line_size[20];
+        int currentRoomNumber = current->roomNumber;
+        sprintf(room_line_size,"Room %d",currentRoomNumber);
+        mvwprintw(win,10+i,(width-strlen(room_line_size))/2,"%s", room_line_size);
+        current = current->next;
+        i++;
+    }
+}
+
 // Pumili ng room na imomodify e.g. print, or baguhin yung values
-struct Rooms* selectRoom(struct Building *building, int roomNumber) {
+struct Rooms* selectRoom(WINDOW *win,int height,int width,struct Building *building, int roomNumber) {
     struct Rooms* current = building->head;
     while (current != NULL) {
         if (current->roomNumber == roomNumber) { // if val of current->roomNumber is equal to current edi same room
@@ -393,7 +463,12 @@ struct Rooms* selectRoom(struct Building *building, int roomNumber) {
         }
 
         if (current->next == NULL) {
-            printf("Invalid Room");
+            const char inrn[]="Invalid Room Number";
+            wattrset(win,A_REVERSE);
+			mvwprintw(win,height/2,(width-strlen(inrn))/2,"%s",inrn);
+            wattrset(win,A_NORMAL);
+            wrefresh(win);
+            napms(2000);
             return NULL;
         }
         current = current->next; // Iterate thruogh the next List
@@ -401,26 +476,134 @@ struct Rooms* selectRoom(struct Building *building, int roomNumber) {
     return NULL;
 }
 
-// iprint ung list ng selected na room
-void printSelectedRoom(struct Building *building, struct Rooms* room) {
-    int currentRoomNumber = room->roomNumber;
-    printf("Room Number: %d\n", currentRoomNumber);
-    // printf("Room Sched Count: %d", room->scheduleCount);
-    if (building->head == NULL) {
-        printf("No rooms in the list.\n");
+/* @date_added: date added: 04/15
+ * @ date_edited: 05/05/2025
+ * @return_type: void
+ * @params: struct Rooms, dayINdex, programCode, time
+ * @description: Load schedule
+ */
+void _loadSched(struct Rooms *room, int dayIndex, const char *programCode, const char *time) {
+    if (room->scheduleCount >= MAX_SCHEDULES) {
+        printf("Cannot add more schedules to room %d\n", room->roomNumber);
         return;
     }
 
-    for (int i = 0; i < room->scheduleCount; i++) {
-            printf("  %s, %s at %s\n",
-               room->schedules[i].day,
-               room->schedules[i].courseCode,
-               room->schedules[i].time);
-        }
+    if (dayIndex < 0 || dayIndex >= MAX_DAYS) {
+        printf("Invalid day index: %d\n", dayIndex);
+        return;
+    }
+
+    struct Schedule *sched = &room->schedules[room->scheduleCount++];
+    strcpy(sched->day, DAYS[dayIndex]);
+    strcpy(sched->programCode, programCode);
+    strcpy(sched->time, time);
 }
 
-//date added: 04/23
-//date edited: 04/24
+
+/* @date_added: date added: 04/15
+ * @ date_edited: 05/05/2025
+ * @return_type: void
+ * @params: win, height, width, struct Building, struct Rooms
+ * @description: Prints building numbers
+ */
+void printSched(WINDOW *win,int height,int width,struct Building *building, struct Rooms* room) {
+    //Window size for schedule
+    int sched_height=height/1.2;
+    int sched_width=width;
+
+    int sched_y=(height-sched_height)/2;
+    int sched_x=(width/2)+1;
+
+    //Generate window size for schedule with start x and start y pos
+    WINDOW *sched_win=newwin(sched_height,sched_width-2,sched_y,sched_x);
+    if(!sched_win){
+		printf("Failed to load screen\n");
+		exit(1);
+	}
+
+    wborder(sched_win,'|','|','-','-','+','+','+','+');
+
+    char exit[]="[X] Exit";
+    mvwprintw(sched_win,sched_height-3,(sched_width-strlen(exit))/2,"%s",exit);
+
+    //Status bar for specific room
+    char cur_room_status[70];
+    int currentBuildingNumber = building->buildingNumber;
+    int currentRoomNumber = room->roomNumber;
+    sprintf(cur_room_status,"User/Buildings/Rooms/Building %d/Room %d",currentBuildingNumber,currentRoomNumber);
+    status_bar(sched_win,cur_room_status);
+
+    struct Rooms *current = building->head; 
+    if (building->head == NULL) {
+        return;
+    }
+
+    //Header for schedule
+    const char *sched_header[]={
+        "Day                    Program Code                  Time",
+        "--------------------------------------------------------------------"
+    };
+
+    //Print line by line of constant sched_header
+    int sched_header_size=sizeof(sched_header)/sizeof(sched_header[0]);
+	for(int i=0;i<sched_header_size;i++){
+		int len=strlen(sched_header[i]);
+		mvwprintw(sched_win,4+i,(sched_width-len)/2,"%s",sched_header[i]);
+	}
+
+    //Print schedule within room
+    for (int i = 0; i < room->scheduleCount; i++) {
+            int day_len=strlen(room->schedules[i].day);
+            int cc_len=strlen(room->schedules[i].programCode);
+            int time_len=strlen(room->schedules[i].time);
+            int total_len=day_len+cc_len+time_len;
+            mvwprintw(sched_win,6+i,(sched_width-strlen(sched_header[0]))/2,"%-23s%-29s%s",
+               room->schedules[i].day,
+               room->schedules[i].programCode,
+               room->schedules[i].time);
+    }
+
+    int ch;
+
+    //Only exits when X is pressed
+    while (1) {
+        ch = wgetch(sched_win);
+        if (toupper(ch) == 'X') {
+            break;
+        }
+        check_winsize(win,height,width/2);
+    }
+    delwin(sched_win);
+}
+
+/* @date_added: date added: 04/23
+ * @ date_edited: 05/05/2025
+ * @return_type: void
+ * @params: word
+ * @description: Lower characters within string
+ */
 void upToLower(char word[10]) {
     for(int i = 0; i< strlen(word); i++) word[i] = tolower(word[i]);
+}
+
+/* @date_added: date added: 05/05/2025
+ * @return_type: void
+ * @params: void
+ * @description: Free allocated memory of building
+ */
+void clearBuildingList(void){
+    struct Building *current = bldgHead;
+    while (current != NULL) {
+        struct Building *next = current->next;
+        // Free rooms in the building
+        struct Rooms *room = current->head;
+        while (room != NULL) {
+            struct Rooms *nextRoom = room->next;
+            free(room);
+            room = nextRoom;
+        }
+        free(current);
+        current = next;
+    }
+    bldgHead = bldgLast = NULL;
 }
