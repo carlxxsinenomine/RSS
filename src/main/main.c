@@ -115,7 +115,6 @@ int main(int argc,char *argv[]){
 				break;
 		}
 		touchwin(win);
-		wrefresh(win);
 		check_winsize(win,height,window_width);
 	}while(ch!='4');
 	

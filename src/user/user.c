@@ -90,6 +90,15 @@ void user_scr(void){
     };
     int bldng_row_size=sizeof(bldng)/sizeof(bldng[0]);
 
+    const char *rms[]={
+        " ____   ___   ___  __  __ ____   ",
+        "|  _ \\ / _ \\ / _ \\|  \\/  / ___| ",
+        "| |_) | | | | | | | |\\/| \\___ \\ ",
+        "|  _ <| |_| | |_| | |  | |___) |",
+        "|_| \\_\\\\___/ \\___/|_|  |_|____/ "
+    };
+    int rms_row_size=sizeof(rms)/sizeof(rms[0]);
+
     // while loop na nagreread line by line from the listOfBuildings.txt
     while (fscanf(listOfBuildingsPtr, "%s", bLine) != EOF) {
         char dirC[50] = "buildings/current_changes/";
@@ -141,6 +150,7 @@ void user_scr(void){
         status_bar(win,"User/Buildings");
         wborder(win,'|','|','-','-','+','+','+','+');
 
+        //Print line by line bldng
         for(int i=0;i<bldng_row_size;i++){
             int len=strlen(bldng[i]);
             int tab=(window_width-len)/2;
@@ -179,16 +189,7 @@ void user_scr(void){
 
                 status_bar(room_win,"User/Buildings/Rooms");
 
-                const char *rms[]={
-                    "____   ___   ___  __  __ ____   ",
-                    "|  _ \\ / _ \\ / _ \\|  \\/  / ___| ",
-                    "| |_) | | | | | | | |\\/| \\___ \\ ",
-                    "|  _ <| |_| | |_| | |  | |___) |",
-                    "|_| \\_\\\\___/ \\___/|_|  |_|____/ "
-                };
-
-                //Print line by line of constant rms
-                int rms_row_size=sizeof(rms)/sizeof(rms[0]);
+                //Print line by line rms
                 for(int i=0;i<rms_row_size;i++){
                     int len=strlen(rms[i]);
                     int tab=(window_width-len)/2;
