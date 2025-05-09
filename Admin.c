@@ -54,6 +54,7 @@ void addRoomSchedule(struct Rooms* room);
 void sortSchedules(struct Rooms* room);
 void editBuilding(struct Buildings *building);
 void revertChanges(struct Buildings *current);
+void freeAllLists();
 
 int main() {
     // listOfBuildingsPointer, currentBuildingPointer
@@ -211,6 +212,7 @@ int main() {
                 break;
         }
     }
+    freeAllLists();
     return 0;
 }
 
@@ -1095,4 +1097,20 @@ void sortSchedules(struct Rooms* room) {
             }
         }
     }
+}
+
+void freeAllLists() {
+    struct Buildings* currentBuilding = bHead;
+    while (currentBuilding!=NULL) {
+        struct Rooms* currentRooms = currentBuilding;
+        while (currentRooms!=NULL) {
+            struct Rooms* temp = currentRooms;
+            currentRooms = currentRooms->next;
+            free(temp);
+        }
+        struct Buildings* temp = currentBuilding;
+        currentBuilding = currentBuilding->next;
+        free(temp);
+    }
+    
 }
