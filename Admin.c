@@ -49,6 +49,8 @@ void printLastChanges(struct Buildings *building);
 void addRoom(struct Buildings *building);
 void addBuilding();
 void deleteRoomSchedule(struct Rooms *room);
+void deleteRoom(struct Buildings* currBuilding);
+void deleteBuilding(struct Buildings* currBuilding, int buildingToDelete);
 void upToLower(char word[10]);
 void addRoomSchedule(struct Rooms* room);
 void sortSchedules(struct Rooms* room);
@@ -159,18 +161,28 @@ int main() {
                 _saveLastChanges(selectedBuilding);
                 addRoom(selectedBuilding);
                 _saveCurrentChanges(selectedBuilding);
-                continue;;
+                continue;
             case 'i':
                 printLastChanges(selectedBuilding);
-                continue;;
+                continue;
             case 'v':
                 revertChanges(selectedBuilding);
-                continue;;
+                continue;
             case 't':
                 _saveLastChanges(selectedBuilding);
                 editBuilding(selectedBuilding);
                 _saveCurrentChanges(selectedBuilding);
-                continue;;
+                continue;
+            case 's':
+                _saveLastChanges(selectedBuilding);
+                deleteBuilding(selectedBuilding, bNum);
+                _saveCurrentChanges(selectedBuilding);
+                continue;
+            case 'o': 
+                _saveLastChanges(selectedBuilding);
+                deleteRoom(selectedBuilding);
+                _saveCurrentChanges(selectedBuilding);
+                continue;
         }
 
         printRooms(selectedBuilding);
@@ -829,6 +841,64 @@ void deleteRoomSchedule(struct Rooms *room) {
                room->schedules[i].courseCode,
                room->schedules[i].time);
     }
+}
+
+void deleteRoom(struct Buildings* currBuilding) {
+    struct Rooms* currRoom = currBuilding->head;
+    struct Rooms* toDelete;
+
+    int roomToDelete;
+    printf("Enter room to delete: ");
+    scanf("%d", &roomToDelete);
+
+    if(roomToDelete >= currBuilding->last->roomNumber) {    // Deletion at end
+        toDelete = currBuilding->last;
+        currBuilding->last = currBuilding->last->prev;
+        currBuilding->last->next = NULL;
+    } else if(roomToDelete <= currRoom->roomNumber) {       // Deletion at front
+        toDelete = currRoom;
+        currBuilding->head = currRoom->next;
+        currBuilding->head->prev = NULL;
+    } else {                                                // Deletion at any postiion
+        while(currRoom!=NULL) {
+            if(roomToDelete == currRoom->roomNumber) {
+                // Delete room
+                toDelete = currRoom;
+                currRoom->prev->next = currRoom->next;
+                currRoom->next->prev = currRoom->prev;
+                break;  
+            }
+            currRoom = currRoom->next;
+        }
+    }
+    free(toDelete);
+}
+
+void deleteBuilding(struct Buildings* currBuilding, int buildingToDelete) {
+    struct Buildings* currentBuilding = bHead;
+    struct Buildings* toDelete;
+    
+    if(buildingToDelete >= bLast->buildingNumber) {    // Deletion at end
+        toDelete = bLast;
+        bLast = bLast->prev;
+        bLast->next = NULL;
+    } else if(buildingToDelete <= currentBuilding->buildingNumber) {       // Deletion at front
+        toDelete = bHead;
+        bHead = bHead->next;
+        bHead->prev = NULL;
+    } else {                                                // Deletion at any postiion
+        while(currentBuilding!=NULL) {
+            if(buildingToDelete == currentBuilding->buildingNumber) {
+                // Delete room
+                toDelete = currentBuilding;
+                currentBuilding->prev->next = currentBuilding->next;
+                currentBuilding->next->prev = currentBuilding->prev;
+                break;  
+            }
+            currentBuilding = currentBuilding->next;
+        }
+    }
+    free(toDelete);
 }
 
 // Transforms Uppercase words to lowercase
