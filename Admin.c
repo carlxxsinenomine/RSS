@@ -136,7 +136,7 @@ int main() {
         //printf("\n\nChoose [a]dd Schedule, add b[u]ilding, edi[t] building, [d]elete Schedule, [e]dit Schedule, [p]rint Room Schedule, pr[i]nt last changes, re[v]ert last changes [q]uit: ");
         // printf("[1] View Buildings\n[2] Add Building\n[3] Edit Building\n[4] Delete Building\n");
         printBuildings();
-        printf("[1] Add Building:\n[2] Edit Building:\n[3] Delete Building:\n[4] View Building:\n");
+        printf("[1] Add Building:\n[2] Edit Building:\n[3] Delete Building:\n[4] View Building:\n[5] Revert Changes");
         scanf(" %c", &option);
         if(!bytes_read && option != '1') {printf("Buildings unavailable, please add buildings first."); continue;}
         if(option == 'q' || option == 'Q') break; // if shift+x
@@ -162,6 +162,8 @@ int main() {
             case '4':
                 printRooms(selectedBuilding);
                 break;
+            case '5':
+                revertChanges(selectedBuilding);
             default:
                 continue;
         }
@@ -217,7 +219,15 @@ int main() {
                 _saveCurrentChanges(selectedBuilding);
                 break;
             case '4':
+                // pero sa ncurses na dat naka side by side comparison if doable
+                printSelectedRoom(selectedRoom);
                 printLastChanges(selectedBuilding, selectedRoom);
+                printf("[1] Revert Changes\n[2]Back");
+                scanf(" %c", &option);
+                if(option == '1')
+                    revertChanges(selectedBuilding);
+                else
+                    continue;
                 break;
         }
     }
