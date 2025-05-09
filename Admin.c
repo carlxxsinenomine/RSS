@@ -256,8 +256,7 @@ int main() {
 
         if(flag != 0) {
             printf("[1] Back"); 
-            int isBack;
-            scanf("%d", &isBack);
+            scanf(" %c", &option);
             if (!isBack) {
                 flag--;
             }
