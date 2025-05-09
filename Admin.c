@@ -131,104 +131,136 @@ int main() {
     }
     fclose(LOBPtr);
     // Sort each schedules per buildings and rooms
+    int flag = 0; // flag for navigation
+    char option;
+    int bNum;
+    struct Buildings* selectedBuilding;
+    struct Rooms* selectedRoom;
+    int roomOfChoice;
+
     while(1) {
-        char option;
-        //printf("\n\nChoose [a]dd Schedule, add b[u]ilding, edi[t] building, [d]elete Schedule, [e]dit Schedule, [p]rint Room Schedule, pr[i]nt last changes, re[v]ert last changes [q]uit: ");
-        // printf("[1] View Buildings\n[2] Add Building\n[3] Edit Building\n[4] Delete Building\n");
-        printBuildings();
-        printf("[1] Add Building:\n[2] Edit Building:\n[3] Delete Building:\n[4] View Building:\n[5] Revert Changes");
-        scanf(" %c", &option);
-        if(!bytes_read && option != '1') {printf("Buildings unavailable, please add buildings first."); continue;}
-        if(option == 'q' || option == 'Q') break; // if shift+x
+        if(flag == 0) {
+            printBuildings();
+            printf("[1] Add Building:\n[2] Edit Building:\n[3] Delete Building:\n[4] View Building:\n[5] Revert Changes");
+            scanf(" %c", &option);
+            if(!bytes_read && option != '1') {printf("Buildings unavailable, please add buildings first."); continue;}
+            if(option == 'q' || option == 'Q') break; // if shift+x
 
-        if(option == '1') {
-            addBuilding();
-            continue;
-        }
+            if(option == '1') {
+                addBuilding();
+                continue;
+            }
 
-        int bNum;
-        struct Buildings* selectedBuilding;
-        printf("Select Building: ");
-        scanf("%d", &bNum);
-        selectedBuilding = selectBuilding(bNum);
 
-        switch(option) {
-            case '2':
-                editBuilding(selectedBuilding);
-                continue;
-            case '3':
-                deleteBuilding(selectedBuilding, bNum);
-                continue;
-            case '4':
-                printRooms(selectedBuilding);
-                break;
-            case '5':
-                revertChanges(selectedBuilding);
-            default:
-                continue;
-        }
+            printf("Select Building: ");
+            scanf("%d", &bNum);
+            selectedBuilding = selectBuilding(bNum);
 
-        printf("[1] Add Room:\n[2] Delete Room:\n[3] Edit Room:\n[4] View Room:\n");
-        scanf(" %c", &option);
-        int roomOfChoice;
-        printRooms(selectedBuilding);
-        printf("Select Room: ");
-        scanf("%d", &roomOfChoice);
-        struct Rooms* selectedRoom = selectRoom(roomOfChoice, selectedBuilding);
-
-        switch (option) {
-            case '1': // Add Room
-                _saveLastChanges(selectedBuilding);
-                addRoom(selectedBuilding);
-                _saveCurrentChanges(selectedBuilding);
-                continue;
-            case '2':
-                _saveLastChanges(selectedBuilding);
-                deleteRoom(selectedBuilding);
-                _saveCurrentChanges(selectedBuilding);
-                continue;
-            case '3':
-                _saveLastChanges(selectedBuilding);
-                editBuilding(selectedBuilding);
-                _saveCurrentChanges(selectedBuilding);
-                continue;
-            case '4':
-                printSelectedRoom(selectedRoom);
-                break;
-            default:
-                break;
-        }
-
-        printf("[1] Add Schedule:\n[2] Delete Schedule:\n[3] Edit Schedule:\n[4] Print Last Changes:\n");
-        scanf(" %c", &option);
-        // kulang pa ng edit
-        switch (option) {
-            case '1': // Add Room Sched
-                _saveLastChanges(selectedBuilding);
-                addRoomSchedule(selectedRoom);
-                _saveCurrentChanges(selectedBuilding);
-                break;
-            case '2': // Delete Room Sched
-                _saveLastChanges(selectedBuilding);
-                deleteRoomSchedule(selectedRoom);
-                _saveCurrentChanges(selectedBuilding);
-                break;
-            case '3': // Edit Room Sched
-                _saveLastChanges(selectedBuilding);
-                editRoomSchedule(selectedRoom);
-                _saveCurrentChanges(selectedBuilding);
-                break;
-            case '4':
-                // pero sa ncurses na dat naka side by side comparison if doable
-                printSelectedRoom(selectedRoom);
-                printLastChanges(selectedBuilding, selectedRoom);
-                printf("[1] Revert Changes\n[2]Back");
-                scanf(" %c", &option);
-                if(option == '1')
-                    revertChanges(selectedBuilding);
-                else
+            switch(option) {
+                case '2':
+                    printf("\nEdit Building\n");// indicator kung annong mode
+                    editBuilding(selectedBuilding);
                     continue;
-                break;
+                case '3':
+                    printf("\nDelete Building\n");// indicator kung annong mode
+                    deleteBuilding(selectedBuilding, bNum);
+                    continue;
+                case '4':
+                    printRooms(selectedBuilding);
+                    flag = 1;
+                    continue;
+                case '5':
+                    printf("\nRevert Changes\n");
+                    revertChanges(selectedBuilding);
+                    continue;
+            }
+        } 
+        if(flag == 1) {
+            printf("[1] Add Room:\n[2] Delete Room:\n[3] Edit Room:\n[4] View Room:\n[5] Back\n");
+            scanf(" %c", &option);
+
+            if(option == '5') {
+                flag--;
+                continue;
+            }
+            printRooms(selectedBuilding);
+            printf("Select Room: ");
+            scanf("%d", &roomOfChoice);
+            selectedRoom = selectRoom(roomOfChoice, selectedBuilding);
+
+            switch (option) {
+                case '1': // Add Room
+                    printf("\nAdd Room\n");// indicator kung annong mode
+                    _saveLastChanges(selectedBuilding);
+                    addRoom(selectedBuilding);
+                    _saveCurrentChanges(selectedBuilding);
+                    break;
+                case '2':
+                    printf("\nDelete Room\n");// indicator kung annong mode
+                    _saveLastChanges(selectedBuilding);
+                    deleteRoom(selectedBuilding);
+                    _saveCurrentChanges(selectedBuilding);
+                    break;
+                case '3':
+                    printf("\nEdit Room\n");// indicator kung annong mode
+                    _saveLastChanges(selectedBuilding);
+                    editBuilding(selectedBuilding);
+                    _saveCurrentChanges(selectedBuilding);
+                    break;
+                case '4':
+                    printSelectedRoom(selectedRoom);
+                    flag = 2;
+                    break;
+            }
+        } 
+        if(flag == 2) {
+            printf("[1] Add Schedule:\n[2] Delete Schedule:\n[3] Edit Schedule:\n[4] Print Last Changes:\n[5] Back\n");
+            scanf(" %c", &option);
+            if(option == '5') {
+                flag--;
+                continue;
+            }
+            // kulang pa ng edit
+            switch (option) {
+                case '1': // Add Room Sched
+                    printf("\nAdd Schedule:\n");  // indicator kung annong mode
+                    _saveLastChanges(selectedBuilding);
+                    addRoomSchedule(selectedRoom);
+                    _saveCurrentChanges(selectedBuilding);
+                    break;
+                case '2': // Delete Room Sched
+                    printf("\nDelete Schedule:\n"); // indicator kung annong mode
+                    _saveLastChanges(selectedBuilding);
+                    deleteRoomSchedule(selectedRoom);
+                    _saveCurrentChanges(selectedBuilding);
+                    break;
+                case '3': // Edit Room Sched
+                    printf("\nEdit Schedule\n"); // indicator kung annong mode
+                    _saveLastChanges(selectedBuilding);
+                    editRoomSchedule(selectedRoom);
+                    _saveCurrentChanges(selectedBuilding);
+                    break;
+                case '4':
+                    // pero sa ncurses na dat naka side by side comparison if doable
+                    printSelectedRoom(selectedRoom);
+                    printLastChanges(selectedBuilding, selectedRoom);
+                    printf("[1] Revert Changes\n[2]Back");
+                    scanf(" %c", &option);
+                    if(option == '1')
+                        revertChanges(selectedBuilding);
+                    else
+                        continue;
+                    break;
+            }
+        }
+
+        if(flag != 0) {
+            printf("[1] Back"); 
+            int isBack;
+            scanf("%d", &isBack);
+            if (!isBack) {
+                flag--;
+            }
         }
     }
     freeAllLists();
