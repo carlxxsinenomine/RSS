@@ -224,7 +224,7 @@ void admin_scr(void){
                 wattrset(win,A_NORMAL);
 				wrefresh(win);
 				napms(2000);
-                break;
+                admin_scr();
             }
 
             if(ch_bldng=='1'){
