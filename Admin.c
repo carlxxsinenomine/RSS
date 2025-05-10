@@ -159,11 +159,15 @@ int main() {
             switch(option) {
                 case '2':
                     printf("\nEdit Building\n");// indicator kung annong mode
+                    _saveLastChanges(selectedBuilding);
                     editBuilding(selectedBuilding);
+                    _saveCurrentChanges(selectedBuilding);
                     continue;
                 case '3':
                     printf("\nDelete Building\n");// indicator kung annong mode
+                    _saveLastChanges(selectedBuilding);
                     deleteBuilding(selectedBuilding, bNum);
+                    _saveCurrentChanges(selectedBuilding);
                     continue;
                 case '4':
                     printRooms(selectedBuilding);
@@ -216,6 +220,10 @@ int main() {
         if(flag == 2) {
             printf("[1] Add Schedule:\n[2] Delete Schedule:\n[3] Edit Schedule:\n[4] Print Last Changes:\n[5] Back\n");
             scanf(" %c", &option);
+            if(option == '5') {
+                flag--;
+                continue;
+            }
             // kulang pa ng edit
             switch (option) {
                 case '1': // Add Room Sched
@@ -246,9 +254,6 @@ int main() {
                         revertChanges(selectedBuilding);
                     else
                         continue;
-                    break;
-                case '5':
-                    flag--;
                     break;
             }
         }
