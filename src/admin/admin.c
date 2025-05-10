@@ -35,6 +35,7 @@ struct Buildings {
 char* WEEK[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 int Select_prompt(WINDOW *win,char input_text[]);
+char *Str_select_prompt(WINDOW *win, char input_text[]);
 void Print_bldng(WINDOW *win,int height,int width,char status[]);
 void Print_rooms(WINDOW *win,int height,int width,struct Buildings *building,char status[]);
 void Load_sched(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
@@ -42,19 +43,18 @@ struct Buildings* Load_bldngs(int buildingNumber, int maxRms);
 struct Rooms* Load_room(int roomNumber, struct Buildings *currentBuilding);
 struct Rooms* Select_room(WINDOW *win,int height,int width,int roomNumber, struct Buildings* currentBuilding);
 struct Buildings* Select_bldng(WINDOW *win,int height,int width,int bNum);
-void Print_sched(WINDOW *win,int height,int width,struct Buildings *building, struct Rooms* room);
+void Print_sched(int height,int width,struct Buildings *building, struct Rooms* room,char status[]);
+void Print_sched_changes(WINDOW *win,int height,int width,struct Buildings *building, struct Rooms* room);
 void Save_cur_changes(struct Buildings *current);
 void Save_last_changes(struct Buildings *current);
-void Edit_room_schedule(struct Rooms *room);
 int Add_room(WINDOW *win,int height,int width,struct Buildings *building);
 int Add_building(WINDOW *win,int height,int width);
-void Del_roomsched(struct Rooms *room);
+void Del_roomsched(WINDOW *win,int height,int width,struct Rooms *room);
 void Del_room(struct Buildings* currBuilding,int roomToDelete);
 void Del_bldng(struct Buildings* currBuilding, int buildingToDelete);
 void Up2low(char word[10]);
-void Add_roomsched(struct Rooms* room);
+int Add_roomsched(WINDOW *win,int height,int width,struct Rooms* room);
 void Sort_sched(struct Rooms* room);
-void Edit_bldng(struct Buildings *building);
 void Revert_changes(struct Buildings *current);
 void freeAllLists();
 
@@ -159,26 +159,23 @@ void admin_scr(void){
 
     const char *bldng_nav_text[]={
         "[1] Add Building   ",
-        "[2] Edit Building  ",
-        "[3] Delete Building",
-        "[4] View Building  ",
-        "[5] Revert Changes ",
+        "[2] Delete Building",
+        "[3] View Building  ",
+        "[4] Revert Changes ",
     };
     int bnt_row_size=sizeof(bldng_nav_text)/sizeof(bldng_nav_text[0]);
-
 
     const char *room_nav_text[]={
         "[1] Add Room   ",
         "[2] Delete Room",
-        "[3] Edit Room  ",
-        "[4] View Room  ",
+        "[3] View Room  ",
     };
     int rnt_row_size=sizeof(room_nav_text)/sizeof(room_nav_text[0]);
 
     const char *sched_nav_text[]={
         "[1] Add Schedule      ",
         "[2] Delete Schedule   ",
-        "[3] Edit Schedule     ",
+        "[3] Print Schedule    ",
         "[4] Print Last Changes"
     };
     int snt_row_size=sizeof(sched_nav_text)/sizeof(sched_nav_text[0]);
@@ -238,9 +235,6 @@ void admin_scr(void){
                 }
             }
             else if(ch_bldng=='2'){
-
-            }
-            else if(ch_bldng=='3'){
                 Print_bldng(win,height,window_width,"Admin/Delete Building");
                 int delBldng=Select_prompt(win,"Input Building Number to Delete: ");
                 if(delBldng!=-1){
@@ -252,7 +246,7 @@ void admin_scr(void){
                     flag=0;
                 }
             }
-            else if(ch_bldng=='4'){
+            else if(ch_bldng=='3'){
                 Print_bldng(win,height,window_width,"Admin/View Building");
                 buildingChoice=Select_prompt(win,"Input Building: ");
                 if(buildingChoice!=-1){
@@ -263,7 +257,7 @@ void admin_scr(void){
                     flag=1;
                 }
             }
-            else if(ch_bldng=='5'){
+            else if(ch_bldng=='4'){
                 Print_bldng(win,height,window_width,"Admin/Revert Changes");
                 buildingChoice=Select_prompt(win,"Input Building to Revert: ");
                 if(buildingChoice!=-1){
@@ -313,11 +307,13 @@ void admin_scr(void){
                 int addRoom=Add_room(win,height,window_width,selectedBuilding);
                 if(addRoom!=-1){
                     flag=1;
+                    continue;
                 }
                 Save_cur_changes(selectedBuilding);
+                continue;
             }
             else if(ch_room=='2'){
-                Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/Add Rooms");
+                Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/Delete Rooms");
                 roomOfChoice=Select_prompt(win,"Select Room to Delete: ");
                 if(roomOfChoice!=-1){
                     selectedRoom=Select_room(win,height,window_width,roomOfChoice,selectedBuilding);
@@ -332,9 +328,6 @@ void admin_scr(void){
                 }
             }
             else if(ch_room=='3'){
-
-            }
-            else if(ch_room=='4'){
                 char bldng_line_size[40];
                 int currentBuildingNumber = selectedBuilding->buildingNumber;
                 sprintf(bldng_line_size,"Admin/View Building/Building %d/Rooms",currentBuildingNumber);
@@ -361,6 +354,7 @@ void admin_scr(void){
             check_winsize(win,height,window_width);
 
             while(flag==2){
+                int Select_sched_nav=0;
                 wclear(win);
                 status_bar(win,"Admin/Buildigs/Rooms/Schedules");
                 wborder(win,'|','|','-','-','+','+','+','+');
@@ -384,17 +378,34 @@ void admin_scr(void){
                 int ch_sched;
                 ch_sched=wgetch(win);
                 if(ch_sched=='1'){
-    
-                    continue;
+                    Save_last_changes(selectedBuilding);
+                    Print_sched(height,window_width,selectedBuilding,selectedRoom,"Add Sched: ");
+                    int addRoomSched=Add_roomsched(win,height,window_width,selectedRoom);
+                    if(addRoomSched!=-1){
+                        flag=2;
+                        continue;
+                    }
+                    flag=1;
+                    Save_cur_changes(selectedBuilding);
                 }
                 else if(ch_sched=='2'){
-    
+                    Save_last_changes(selectedBuilding);
+                    Print_sched(height,window_width,selectedBuilding,selectedRoom,"Add Sched");
+                    Del_roomsched(win,height,window_width,selectedRoom);
+                    flag=2;
+                    Save_cur_changes(selectedBuilding);
+                    continue;
                 }
                 else if(ch_sched=='3'){
-    
+                    Print_sched(height,window_width,selectedBuilding,selectedRoom,"Add Sched");
+                    wgetch(win);
+                    flag=2;
+                    continue;
                 }
                 else if(ch_sched=='4'){
-                    Print_sched(win,height,window_width,selectedBuilding,selectedRoom);
+                    Print_sched_changes(win,height,window_width,selectedBuilding,selectedRoom);
+                    flag=2;
+                    continue;
                 }
                 else if(toupper(ch_sched)==('X')){
                     flag=1;
@@ -486,6 +497,89 @@ int Select_prompt(WINDOW *win,char input_text[]){
 		if(i>0){
 			delwin(sub);
 			return atoi(user_input);
+		}
+		else{
+			wclear(sub);
+		}
+	}
+	keypad(sub,FALSE);
+}
+
+char *Str_select_prompt(WINDOW *win, char input_text[]){
+    noecho();
+
+	//Get window size
+	int height,width;
+	getmaxyx(win,height,width);
+	
+	//Creates screen for Str_select_prompt
+	WINDOW *sub=newwin(3,width-2,height-4,(width/2)+1);
+	
+	if(!sub){
+		printf("Failed to load screen\n");
+        exit(1);
+    }
+
+	keypad(sub,TRUE);
+
+	char* user_input = malloc(20);
+	int i;
+	int ch;
+
+	//Loop for password
+	while(1){
+		box(sub,0,0);
+		mvwprintw(sub,0,2,"[CRTL + X] Cancel");
+		mvwprintw(sub,1,1,"%s",input_text);
+
+		i=0;
+
+		//While user don't press enter and i does not exceed 19 (19 ensures that the user can input upto 19)
+		while((ch=wgetch(sub))!='\n' && i<19){
+			int y,x;
+			getyx(sub,y,x);
+
+			//ASCII value of backsapce is 127
+			if(ch==KEY_BACKSPACE || ch==127){
+				if(i>0){
+					i--;
+					user_input[i]='\0';
+					mvwprintw(sub,y,x-1," ");
+					wmove(sub,y,x-1);
+					wrefresh(sub);
+        			}
+			}
+			//ASCII value of crtl+x key is 24
+			else if(ch==24){
+                free(user_input);
+				delwin(sub);
+				return NULL;
+			}
+			//If user press space then exit
+			else if(ch==' '){
+				const char no_space[]="Input should not contain spaces";
+				mvwprintw(sub,1,(width-strlen(no_space))/2,"%s",no_space);
+				wrefresh(sub);
+				napms(2000);
+				return NULL;
+			}
+			//Printable ASCII characters are only within the range of 32-126
+			else if(ch>=32 && ch<=126){
+				//Handles when i<18 only prints when characters at input_pass buffer is i<18
+				if(i<18){
+					user_input[i]=ch;
+					mvwprintw(sub,y,x,"%c",ch);
+					i++;
+					wrefresh(sub);
+				}
+			}
+		}
+		//Terminates the buffer
+		user_input[i]='\0';
+
+		if(i>0){
+			delwin(sub);
+			return user_input;
 		}
 		else{
 			wclear(sub);
@@ -722,13 +816,75 @@ struct Buildings* Select_bldng(WINDOW *win,int height,int width,int bNum) {
 }
 
 /**
+ * @date_added: 05/10
+ * @return_type: void
+ * @parameter: win, height, width, struct Buildings, struct Rooms, status
+ * @description: Prints schedule to screen
+ */
+void Print_sched(int height,int width,struct Buildings *building, struct Rooms* room,char status[]){
+    //Window size for schedule
+    int sched_height=height/1.120;
+    int sched_width=width-2;
+
+    int sched_y=(height-sched_height)/2;
+    int sched_x=(width/2)+1;
+
+    //Generate window size for schedule with start x and start y pos
+    WINDOW *sched_win=newwin(sched_height,sched_width,sched_y,sched_x);
+    if(!sched_win){
+		printf("Failed to load screen\n");
+		exit(1);
+	}
+
+    wborder(sched_win,'|','|','-','-','+','+','+','+');
+
+    //Status bar for specific room
+    char cur_room_status[70];
+    int currentBuildingNumber = building->buildingNumber;
+    int currentRoomNumber = room->roomNumber;
+    sprintf(cur_room_status,"Admin/View Building/%s/Building %d/Room %d",status,currentBuildingNumber,currentRoomNumber);
+    status_bar(sched_win,cur_room_status);
+
+    struct Rooms *current = building->head; 
+    if (building->head == NULL) {
+        return;
+    }
+
+    //Header for schedule
+    const char *sched_header[]={
+        "Day                    Program Code                  Time",
+        "--------------------------------------------------------------------"
+    };
+
+    //Print line by line of constant sched_header
+    int sched_header_size=sizeof(sched_header)/sizeof(sched_header[0]);
+	for(int i=0;i<sched_header_size;i++){
+		int len=strlen(sched_header[i]);
+		mvwprintw(sched_win,4+i,(sched_width-len)/2,"%s",sched_header[i]);
+	}
+
+    //Print schedule within room
+    for (int i = 0; i < room->scheduleCount; i++) {
+            int day_len=strlen(room->schedules[i].day);
+            int cc_len=strlen(room->schedules[i].programCode);
+            int time_len=strlen(room->schedules[i].time);
+            int total_len=day_len+cc_len+time_len;
+            mvwprintw(sched_win,6+i,(sched_width-strlen(sched_header[0]))/2,"%-23s%-29s%s",
+               room->schedules[i].day,
+               room->schedules[i].programCode,
+               room->schedules[i].time);
+    }
+    wrefresh(sched_win);
+}
+
+/**
  * @date_added: 4/15
  * @return_type: void
  * @parameter: Accepts Buildings Structure, And Rooms Structure
  * @description: The Structure Arguments are the structures acquired from the selectBuilding and selectRoom functions, the printSelectedRoom
  * function prints the data contents of an specific room.
  */
-void Print_sched(WINDOW *win,int height,int width,struct Buildings *building, struct Rooms* room) {
+void Print_sched_changes(WINDOW *win,int height,int width,struct Buildings *building, struct Rooms* room) {
     int currentRoomNumber = room->roomNumber;
     int currentBuildingNumber = building->buildingNumber;
 
@@ -781,7 +937,7 @@ void Print_sched(WINDOW *win,int height,int width,struct Buildings *building, st
            room->schedules[i].day,
            room->schedules[i].programCode,
            room->schedules[i].time);
-}
+    }
 
     FILE *lastChanges, *temp;
     char strBuildingNumber[5];
@@ -904,51 +1060,6 @@ void Save_last_changes(struct Buildings *current) {
         room = room->next;
     }
     fclose(changesPTR);
-}
-
-void Edit_room_schedule(struct Rooms *room) {
-    int rowToEdit;
-    for(int row=0; row < room->scheduleCount; row++) {
-        printf("%d. %s, %s %s\n", row, room->schedules[row].day, room->schedules[row].programCode, room->schedules[row].time);
-    }
-    printf("Enter Row to edit");
-    scanf("%d", &rowToEdit);
-
-    struct Schedule *current = &room->schedules[rowToEdit];
-    printf("%s, %s, %s\n", current->day, current->programCode, current->time);
-    printf("What do you want to delete: [d]day, [c]oursecode, [t]ime, [a]ll");
-    char option;
-    char day[20], coursecode[10], time[20];
-    scanf(" %c", &option);
-    switch(option) {
-        case 'd':
-            printf("Enter Day: ");
-            scanf("%s", day);
-            strcpy(current->day, day);
-            break;
-        case 'c':
-            printf("Enter CourseCode");
-            scanf("%s", coursecode);
-            strcpy(current->programCode, coursecode);
-            break;
-        case 't':
-            printf("Enter Time");
-            strcpy(current->time, time);
-            scanf("%s", time);
-            break;
-        case 'a':
-            printf("Enter Day: ");
-            scanf("%s", day);
-            strcpy(current->day, day);
-            printf("Enter CourseCode");
-            scanf("%s", coursecode);
-            strcpy(current->programCode, coursecode);
-            printf("Enter Time");
-            scanf("%s", time);
-            scanf("%s", time);
-        default: 
-            printf("Invalid\n");
-    }
 }
 
 void Revert_changes(struct Buildings *current) {
@@ -1130,79 +1241,6 @@ int Add_room(WINDOW *win,int height,int width,struct Buildings *building) {
     Save_cur_changes(building);
     return -1;
 }
-// edit specific building info e.g. maxrooms, buildingnumber, etc
-void Edit_bldng(struct Buildings *building) {
-    int currentBNumber = building->buildingNumber; // for error handling puruposes
-    char option;
-    printf("What do you want to edit: [b]uildingNumber, [m]axRooms, [a]ll");
-    scanf(" %c", &option);
-
-    int newBuildingNumber, newMaxRooms;
-    struct Buildings *current = bHead; // will be used to traverse the linkedlist of Buildings structure
-
-    switch (option) {
-        case 'b':   
-            printf("Enter new building number: ");
-            scanf("%d", &newBuildingNumber);
-            if(newBuildingNumber<1) return; // error negative value
-            if(newBuildingNumber == currentBNumber) {
-                printf("newBuildingNubmer is equal to the currentBNumber..do you want to [e]exit or [r]try");
-                char exitOrRetry;
-                scanf(" %c", &exitOrRetry);
-
-                if(exitOrRetry == 'e')
-                    return;
-                else
-                    Edit_bldng(building);
-            }
-            //TODO: check if existing na building number
-            while(current!=NULL) {
-                if(newBuildingNumber == current->buildingNumber) {
-                    printf("Building Nubmer already existed\n");
-                    return;
-                }
-                current = current->next;
-            }
-            building->buildingNumber = newBuildingNumber;
-            break;
-        case 'm':
-            printf("Enter new maxRooms count: ");
-            scanf("%d", &newMaxRooms);
-            if(newMaxRooms<1) return; // error
-            building->maxRooms = newMaxRooms;
-            break;
-        case 'a':
-            printf("Enter new building number: ");
-            scanf("%d", &newBuildingNumber);
-            if(newBuildingNumber<1) return; // error negative value
-            if(newBuildingNumber == currentBNumber) {
-                printf("newBuildingNubmer is equal to the currentBNumber..do you want to [e]exit or [r]try");
-                char exitOrRetry;
-                scanf(" %c", &exitOrRetry);
-
-                if(exitOrRetry == 'e')
-                    return;
-                else
-                    Edit_bldng(building);
-            }
-            //TODO: check if existing na building number
-            while(current!=NULL) {
-                if(newBuildingNumber == current->buildingNumber) {
-                    printf("Building Nubmer already existed\n");
-                    return;
-                }
-                current = current->next;
-            }
-            building->buildingNumber = newBuildingNumber;
-            printf("Enter new maxRooms count: ");
-            scanf("%d", &newMaxRooms);
-            if(newMaxRooms<1) return; // error
-            building->maxRooms = newMaxRooms;
-            break;
-        default:
-            printf("Invalid");
-    }
-}
 
 int Add_building(WINDOW *win,int height,int width) {
     int buildingNumber=Select_prompt(win,"Input Building Number: ");
@@ -1328,27 +1366,36 @@ int Add_building(WINDOW *win,int height,int width) {
 }
 
 //  show aba
-void Del_roomsched(struct Rooms *room) {
-    int currentRoomNumber = room->roomNumber;
-    printf("Room Number: %d\n", currentRoomNumber);
-    printf("Enter Row to delete: ");
-
-    int rowToDelete;
-    scanf("%d", &rowToDelete);
-
-    for(int i = rowToDelete; i < room->scheduleCount -1; i++) {
-       room->schedules[i] = room->schedules[i + 1];
+void Del_roomsched(WINDOW *win,int height,int width,struct Rooms *room) {
+    if (!room || room->scheduleCount == 0) {
+        const char no_sched[] = "No schedules to delete";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height/2, (width-strlen(no_sched))/2, "%s", no_sched);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        return;
     }
 
+    // Get user input for which schedule to delete
+    int rowToDelete = Select_prompt(win, "Enter schedule row to delete (0 to cancel): ");
+    if (rowToDelete <= 0 || rowToDelete > room->scheduleCount) {
+        return; // Invalid input or cancelled
+    }
+
+    // Shift schedules down
+    for(int i = rowToDelete-1; i < room->scheduleCount-1; i++) {
+        room->schedules[i] = room->schedules[i+1];
+    }
     room->scheduleCount--;
 
-    for (int i = 0; i < room->scheduleCount; i++) {
-        printf("%d.  %s, %s at %s\n",
-               i,
-               room->schedules[i].day,
-               room->schedules[i].programCode,
-               room->schedules[i].time);
-    }
+    // Show success message
+    const char success[] = "Schedule deleted";
+    wattrset(win, A_REVERSE);
+    mvwprintw(win, height/2, (width-strlen(success))/2, "%s", success);
+    wattrset(win, A_NORMAL);
+    wrefresh(win);
+    napms(1000);
 }
 
 void Del_room(struct Buildings* currBuilding,int roomToDelete) {
@@ -1450,135 +1497,161 @@ void Up2low(char word[10]) {
     }
 }
 
-void Add_roomsched(struct Rooms* room) {
+int Add_roomsched(WINDOW *win, int height, int width, struct Rooms* room) {
     if (room->scheduleCount == MAX_SCHEDULES) {
-        printf("Maximum schedules reached\n");
-        return;
+        const char max_sched[] = "Maximum schedule reached for this room";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(max_sched)) / 2, "%s", max_sched);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        return -1;
     }
 
-    int currentRoomNumber = room->roomNumber;
-    printf("\nRoom Number: %d\n", currentRoomNumber);
-    
-    char day[15], coursecode[15], time[15];
-    printf("Enter day: ");
-    scanf("%s", day);
-    printf("Enter coursecode: (it1a, cs1a): ");
-    scanf("%s", coursecode);
-    printf("Enter time: (e.g. 7am-9am): ");
-    scanf("%s", time);
+    // Get day
+    char* day = Str_select_prompt(win, "Enter day: ");
+    if (!day) return -1;
 
-    // just to make sure everytbing's in lowercase
-    Up2low(day);
+    int valid_day = 0;
+    for (int i = 0; i < MAX_DAYS; i++) {
+        if (strcasecmp(WEEK[i], day) == 0) {
+            valid_day = 1;
+            break;
+        }
+    }
+
+    if (!valid_day) {
+        const char msg[] = "Invalid day input";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+
+    // Get course code
+    char* cc = Str_select_prompt(win, "Enter Course Code (e.g., it1a, cs1a): ");
+    if (!cc) {
+        free(day);
+        return -1;
+    }
+
+    char coursecode[15];
+    strncpy(coursecode, cc, sizeof(coursecode) - 1);
+    coursecode[sizeof(coursecode) - 1] = '\0';
+    free(cc);
     Up2low(coursecode);
+
+    // Get time
+    char* tm = Str_select_prompt(win, "Enter Time (e.g., 7am-9am): ");
+    if (!tm) {
+        free(day);
+        return -1;
+    }
+
+    char time[15];
+    strncpy(time, tm, sizeof(time) - 1);
+    time[sizeof(time) - 1] = '\0';
+    free(tm);
     Up2low(time);
 
-    // printf("%s, %s, %s", day, coursecode, time);
-    // printf("%s", day);
-    // printf("   %s\n", DAYS[0]);
-
-    // Checks if user inputted day exists on the DAYS array.
-    for (int i = 0; i <= MAX_DAYS; i++) {
-        if(i >= MAX_DAYS) {
-            printf("Invalid day input, please try again.\n");
-            Add_roomsched(room);
-        }
-        if(strcmp(WEEK[i], day) == 0)
-            break;
+    // Parse time format
+    char startStr[20], endStr[20];
+    if (sscanf(time, "%19[^-]-%19s", startStr, endStr) != 2) {
+        const char msg[] = "Invalid time format (use 7am-9am or 7:00am-9:00am)";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
     }
 
-    // Error handling for the time input string
-    char firstHalf[10]; // First half of the hh:mmxx - hh:mmxx
-    char secondHalf[10]; // Second half of the hh:mmxx - hh:mmxx
-    sscanf(time, "%9[^-]-%s", firstHalf, secondHalf);
-    // For debugging purposes lang to
-    printf("First half: %s\n", firstHalf);
-    printf("second half: %s\n", secondHalf);
-    
-    int FHI; // First half of hour but int; 11pm the 11 will be stored
-    int SHI; // likewise...katamad magcomment
-    int FHMI = 0; // First half of time but minutes; HH:MMxx; MM
-    int SHMI = 0;
-    
-    // checks if both first and second half len of string is equal 7 (hh:mmxx) then capture that minute value as well
-    if (strlen(firstHalf) > 4 && strlen(secondHalf) > 3) {
-        sscanf(firstHalf, "%d:%d", &FHI, &FHMI);
-        sscanf(secondHalf, "%d:%d", &SHI, &SHMI);
-    } else if(strlen(firstHalf) > 4 && strlen(secondHalf) <= 4) {
-        sscanf(firstHalf, "%d:%d", &FHI, &FHMI);
-        sscanf(secondHalf, "%d", &SHI);
-    } else if(strlen(firstHalf) <= 4 && strlen(secondHalf) > 4) {
-        sscanf(firstHalf, "%d", &FHI);
-        sscanf(secondHalf, "%d:%d", &SHI, &SHMI);
-    } else {
-        sscanf(firstHalf, "%d", &FHI);
-        sscanf(secondHalf, "%d", &SHI);
-    }
-    //TODO: Create an error handling to handle overlapping schedules on a room
-    for (int index=0; index < room->scheduleCount; index++) {
-        if(strcmp(room->schedules[index].day, day) == 0)  {// if same day as inputted value
-            int schedFirstHalf, schedSecHalf,schedSecHalfMin;
-            sscanf(room->schedules[index].time, "%d", &schedFirstHalf);//retrieves the first half of hh:mmxx-hh:mmxx
-            char trsh[51]; // ignore
-            sscanf(room->schedules[index].time, "%50[^-]-%d:%d", trsh, &schedSecHalf, &schedSecHalfMin);
-            if((FHI == schedFirstHalf) || (FHI == schedSecHalf && FHMI < schedSecHalfMin)) {//e.g 7 and 7:30, then error
-                printf("Error overlapping values\n");
-                return;
-            }
-        }
+    int h1 = 0, m1 = 0, h2 = 0, m2 = 0;
+    char p1[3] = "", p2[3] = "";
+
+    if (!(sscanf(startStr, "%d:%d%2s", &h1, &m1, p1) == 3 ||
+          sscanf(startStr, "%d%2s", &h1, p1) == 2)) {
+        free(day);
+        return -1;
     }
 
-    // TODO: create an error handling for random input string for each fields e.g. aslfjk-lsakjflam
-
-    // Below this shit are buggy ass error handling, will improve later
-    int isFAM = (firstHalf[strlen(firstHalf) - 2] == 'a') ? 1 : 0; // 1 if AM 0 if PM
-    int isSAM = (secondHalf[strlen(secondHalf) - 2] == 'a') ? 1 : 0; // 1 if AM 0 if PM
-
-    if(firstHalf[strlen(firstHalf) - 2] == secondHalf[strlen(secondHalf) - 2]) { 
-        if(SHI < FHI) { // if it's AM or PM and Second half is higher than first half then error
-            printf("3Invalid time values, Please try again\n");
-            Add_roomsched(room);
-        }
-    }
-    // HH:mm; if HH if over 12 then error(this aint military time bruv), if HH is less than 6 then error there's no way someone's class starts at 5
-    // HH:mm; if HH if over 10(cause u cant have classes at 11 en't u?) or less than 1 then error(this aint military time bruv)
-    if(isFAM && isSAM) {
-        if(FHI > 12 || FHI < 6 || SHI > 12 || SHI < 6) { 
-            printf("1Invalid time values, please try again\n");
-            Add_roomsched(room);
-        }
-        if(SHI == 12) {
-            printf("1Invalid time values, please try again\n");
-            Add_roomsched(room);
-        }
-    } else if(!isFAM && !isSAM) {
-        if (FHI > 10 || FHI < 1 || SHI > 10 || SHI < 1) {
-            printf("11Invalid time values, please try again\n");
-            Add_roomsched(room);
-        }
-        if(SHI == 12) {
-            printf("1Invalid time values, please try again\n");
-            Add_roomsched(room);
-        }
+    if (!(sscanf(endStr, "%d:%d%2s", &h2, &m2, p2) == 3 ||
+          sscanf(endStr, "%d%2s", &h2, p2) == 2)) {
+        free(day);
+        return -1;
     }
 
-    if(FHMI || SHMI) // if  hindi 0 ang value ng minutes
-        if((FHMI > 59 || FHMI < 0) || (SHMI > 59 || SHMI < 0)) {
-            printf("2Invalid time value, please try again.\n");
-            Add_roomsched(room);
-        }
-    
-    // Store add new Datas to the array of Schedule structures of the current Room structure passed
-    struct Schedule *sched = &room->schedules[room->scheduleCount++];
-    strcpy(sched->day, day);
-    strcpy(sched->programCode, coursecode);
-    strcpy(sched->time, time);
+    if (h1 < 1 || h1 > 12 || h2 < 1 || h2 > 12 ||
+        m1 < 0 || m1 > 59 || m2 < 0 || m2 > 59 ||
+        (strcasecmp(p1, "am") != 0 && strcasecmp(p1, "pm") != 0) ||
+        (strcasecmp(p2, "am") != 0 && strcasecmp(p2, "pm") != 0)) {
+        free(day);
+        return -1;
+    }
 
-    for (int i = 0; i < room->scheduleCount; i++) 
-        printf("%d.  %s, %s at %s\n",
-               i,
-               room->schedules[i].day,
-               room->schedules[i].programCode,
-               room->schedules[i].time);
+    if (strcasecmp(p1, "pm") == 0 && h1 != 12) h1 += 12;
+    if (strcasecmp(p1, "am") == 0 && h1 == 12) h1 = 0;
+    if (strcasecmp(p2, "pm") == 0 && h2 != 12) h2 += 12;
+    if (strcasecmp(p2, "am") == 0 && h2 == 12) h2 = 0;
+
+    int startMin = h1 * 60 + m1;
+    int endMin = h2 * 60 + m2;
+
+    if (startMin >= endMin) {
+        const char msg[] = "End time must be after start time";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+
+    // Conflict check
+    for (int i = 0; i < room->scheduleCount; i++) {
+        if (strcasecmp(room->schedules[i].day, day) != 0) continue;
+
+        char estart[20], eend[20], ep1[3] = "", ep2[3] = "";
+        int eh1 = 0, em1 = 0, eh2 = 0, em2 = 0;
+        sscanf(room->schedules[i].time, "%19[^-]-%19s", estart, eend);
+        sscanf(estart, "%d:%d%2s", &eh1, &em1, ep1) == 3 ||
+        sscanf(estart, "%d%2s", &eh1, ep1) == 2;
+        sscanf(eend, "%d:%d%2s", &eh2, &em2, ep2) == 3 ||
+        sscanf(eend, "%d%2s", &eh2, ep2) == 2;
+
+        if (strcasecmp(ep1, "pm") == 0 && eh1 != 12) eh1 += 12;
+        if (strcasecmp(ep1, "am") == 0 && eh1 == 12) eh1 = 0;
+        if (strcasecmp(ep2, "pm") == 0 && eh2 != 12) eh2 += 12;
+        if (strcasecmp(ep2, "am") == 0 && eh2 == 12) eh2 = 0;
+
+        int estartMin = eh1 * 60 + em1;
+        int eendMin = eh2 * 60 + em2;
+
+        if ((startMin < eendMin && endMin > estartMin)) {
+            const char conflict[] = "Schedule conflict detected";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(conflict)) / 2, "%s", conflict);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
+        }
+    }
+
+    // Add the schedule
+    struct Schedule* sched = &room->schedules[room->scheduleCount++];
+    strncpy(sched->day, day, sizeof(sched->day) - 1);
+    strncpy(sched->programCode, coursecode, sizeof(sched->programCode) - 1);
+    strncpy(sched->time, time, sizeof(sched->time) - 1);
+
+    free(day);
+    return 0;
 }
 
 

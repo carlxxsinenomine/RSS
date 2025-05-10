@@ -1,29 +1,21 @@
 Building No: 2
 Max Rooms: 18
+Room: 101
+
+Room: 103
+
 Room: 104
 0, it2b, 9am-10am
-1, it2b, 9am-10am
-4, it2b, 9am-10am
-0, it2b, 9am-10am
-1, it2b, 9am-10am
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-1, it2b, 9am-10am
-4, it2b, 9am-10am
-0, it2b, 9am-10am
-1, it2b, 9am-10am
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-1, it2b, 9am-10am
-4, it2b, 9am-10am
-0, it2b, 9am-10am
-1, it2b, 9am-10am
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-1, it2b, 9am-10am
 
-Room: 102
+Room: 105
+0, cs1a, 7am-9am
+
+Room: 106
 0, it2b, 9am-10am
-1, it2b, 9am-10am
-4, it2b, 9am-10am
+
+Room: 107
+0, cs1a, 7am-9am
+
+Room: 108
+0, it2b, 9am-10am
 
