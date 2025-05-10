@@ -46,10 +46,10 @@ void Print_sched(WINDOW *win,int height,int width,struct Buildings *building, st
 void Save_cur_changes(struct Buildings *current);
 void Save_last_changes(struct Buildings *current);
 void Edit_room_schedule(struct Rooms *room);
-void addRoom(struct Buildings *building);
+int Add_room(WINDOW *win,int height,int width,struct Buildings *building);
 int Add_building(WINDOW *win,int height,int width);
 void Del_roomsched(struct Rooms *room);
-void Del_room(struct Buildings* currBuilding);
+void Del_room(struct Buildings* currBuilding,int roomToDelete);
 void Del_bldng(struct Buildings* currBuilding, int buildingToDelete);
 void Up2low(char word[10]);
 void Add_roomsched(struct Rooms* room);
@@ -221,7 +221,7 @@ void admin_scr(void){
         ch_bldng=wgetch(win);
         if(flag==0){
             if(!bytes_read && ch_bldng!='1'){
-                const char no_bldng_avail[]="Buildings unavailable, please add buildings first.";
+                const char no_bldng_avail[]="Buildings unavailable, please add buildings first";
                 wattrset(win,A_REVERSE);
 				mvwprintw(win,height/2,(width-strlen(no_bldng_avail))/2,"%s",no_bldng_avail);
                 wattrset(win,A_NORMAL);
@@ -241,7 +241,16 @@ void admin_scr(void){
 
             }
             else if(ch_bldng=='3'){
-
+                Print_bldng(win,height,window_width,"Admin/Delete Building");
+                int delBldng=Select_prompt(win,"Input Building Number to Delete: ");
+                if(delBldng!=-1){
+                    selectedBuilding=Select_bldng(win,height,window_width,delBldng);
+                    if(!selectedBuilding){
+                        continue;
+                    }
+                    Del_bldng(selectedBuilding,delBldng);
+                    flag=0;
+                }
             }
             else if(ch_bldng=='4'){
                 Print_bldng(win,height,window_width,"Admin/View Building");
@@ -255,21 +264,30 @@ void admin_scr(void){
                 }
             }
             else if(ch_bldng=='5'){
-
+                Print_bldng(win,height,window_width,"Admin/Revert Changes");
+                buildingChoice=Select_prompt(win,"Input Building to Revert: ");
+                if(buildingChoice!=-1){
+                    selectedBuilding=Select_bldng(win,height,window_width,buildingChoice);
+                    if(!selectedBuilding){
+                        continue;
+                    }
+                    Revert_changes(selectedBuilding);
+                    flag=0;
+                }
             }
-
             else if(toupper(ch_bldng)==('X')){
                 flag=-1;
                 freeAllLists();
                 delwin(win);
                 break;
             }
+
             wrefresh(win);
             check_winsize(win,height,window_width);
         }
         while(flag==1){
             wclear(win);
-            status_bar(win,"Admin/Buildigs/Rooms");
+            status_bar(win,"Admin/View Building/Rooms");
             wborder(win,'|','|','-','-','+','+','+','+');
 
             for(int i=0;i<adt_row_size;i++){
@@ -291,19 +309,42 @@ void admin_scr(void){
             int ch_room;
             ch_room=wgetch(win);
             if(ch_room=='1'){
-                continue;
+                Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/Add Rooms");
+                int addRoom=Add_room(win,height,window_width,selectedBuilding);
+                if(addRoom!=-1){
+                    flag=1;
+                }
+                Save_cur_changes(selectedBuilding);
             }
             else if(ch_room=='2'){
-
+                Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/Add Rooms");
+                roomOfChoice=Select_prompt(win,"Select Room to Delete: ");
+                if(roomOfChoice!=-1){
+                    selectedRoom=Select_room(win,height,window_width,roomOfChoice,selectedBuilding);
+                    if(!selectedRoom){
+                        flag=1;
+                        continue;
+                    }
+                    Del_room(selectedBuilding,roomOfChoice);
+                    Save_cur_changes(selectedBuilding);
+                    flag=1;
+                    continue;
+                }
             }
             else if(ch_room=='3'){
 
             }
             else if(ch_room=='4'){
-                Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/");
-                int roomChoice=Select_prompt(win,"Input Room: ");
-                if(roomChoice!=-1){
-                    selectedRoom=Select_room(win,height,window_width,roomChoice,selectedBuilding);
+                char bldng_line_size[40];
+                int currentBuildingNumber = selectedBuilding->buildingNumber;
+                sprintf(bldng_line_size,"Admin/View Building/Building %d/Rooms",currentBuildingNumber);
+    
+                status_bar(win,bldng_line_size);
+
+                Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Room");
+                roomOfChoice=Select_prompt(win,"Input Room: ");
+                if(roomOfChoice!=-1){
+                    selectedRoom=Select_room(win,height,window_width,roomOfChoice,selectedBuilding);
                     if(!selectedRoom){
                         flag=1;
                         continue;
@@ -640,10 +681,6 @@ struct Rooms* Select_room(WINDOW *win,int height,int width,int roomNumber,struct
         if (current->roomNumber == roomNumber) { // if val of current->roomNumber is equal to current edi same room
             return current; // return the current room na imomodify
         }
-
-        if (roomNumber > currentBuilding->last->roomNumber) {
-            return currentBuilding->last;
-        }
         if (current->next==NULL){
             const char inrn[]="Invalid Room Number";
             wattrset(win,A_REVERSE);
@@ -915,9 +952,10 @@ void Edit_room_schedule(struct Rooms *room) {
 }
 
 void Revert_changes(struct Buildings *current) {
-    FILE* revertPtr;
+    if (!current) return;
 
-    Save_last_changes(current); // Save muna current configurations
+    // Save current state as last changes first (so we can undo the revert if needed)
+    Save_last_changes(current);
 
     char strBuildingNumber[5];
     int buildingNumber = current->buildingNumber;
@@ -926,104 +964,171 @@ void Revert_changes(struct Buildings *current) {
     strcat(dirChanges, strBuildingNumber);
     strcat(dirChanges, ".txt");
 
-    revertPtr = fopen(dirChanges, "rt");
-
-    char line[100];
-    fgets(line, sizeof(line), revertPtr);
-    sscanf(line, "Building No: %d", &current->buildingNumber);
-    fgets(line, sizeof(line), revertPtr);
-    sscanf(line, "Max Rooms: %d", &current->maxRooms);
-
-    struct Rooms *currentRm = current->head;
-
-    while (fgets(line, sizeof(line), revertPtr)) {
-        // If Room: is present on the string
-        if (strstr(line, "Room:")) { // strstr hinahanap nya ung inespecify mo ssa params from an array. e.g. "Room:", hinahanap nya sa array ung Room:
-            int currentRoom = 0;
-            sscanf(line, "Room: %d", &currentRoom);
-            currentRm->roomNumber = currentRoom;
-            continue;
-        }
-
-        if (strlen(line) <= 1)
-            continue; // If empty line skip.
-
-        int dayIndex;
-        char courseCode[21], time[21];
-
-        if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
-        if (currentRm)
-            Load_sched(currentRm, dayIndex, courseCode, time);
-    }
-    Save_cur_changes(current);
-    fclose(revertPtr);
-}
-
-void addRoom(struct Buildings *building) {
-    // Check if room number is less than max
-    // struct Rooms* currentRoom = building->last;
-    // printf("Last Room no: %d\n\n\n", currentRoom->roomNumber);
-    int roomCount=0;
-    struct Rooms* currentRoom = building->head;
-    while(currentRoom != NULL) {
-        roomCount++;
-        currentRoom = currentRoom->next;
-    }
-    if(roomCount >= building->maxRooms) {
-        // Then nde na pedeng magadd ng room
+    FILE *revertPtr = fopen(dirChanges, "rt");
+    if (!revertPtr) {
+        // Handle error - file doesn't exist or can't be opened
         return;
     }
 
-    // Proceed if pede pa magadd ng room
-    printf("Enter Room Number: (e.g. 101, 201)");
-    int roomNumber;
-    scanf("%d", &roomNumber);
+    // Clear existing rooms
+    struct Rooms *room = current->head;
+    while (room != NULL) {
+        struct Rooms *nextRoom = room->next;
+        free(room);
+        room = nextRoom;
+    }
+    current->head = current->last = NULL;
+
+    char line[100];
+    struct Rooms *currentRm = NULL;
     
-    // To check if roomNumber already exist
-    while(currentRoom != NULL) {
-        if(roomNumber == currentRoom->roomNumber) {
-            // Then room already exist
-            // ask user if usto pa magcontinue if yes recursion
-            // call the same function again
-            addRoom(building);
+    // Read building info
+    if (fgets(line, sizeof(line), revertPtr)) {
+        sscanf(line, "Building No: %d", &current->buildingNumber);
+    }
+    if (fgets(line, sizeof(line), revertPtr)) {
+        sscanf(line, "Max Rooms: %d", &current->maxRooms);
+    }
+
+    // Read rooms and schedules
+    while (fgets(line, sizeof(line), revertPtr)) {
+        if (strstr(line, "Room:")) {
+            int currentRoom = 0;
+            sscanf(line, "Room: %d", &currentRoom);
+            currentRm = Load_room(currentRoom, current);
+            continue;
+        }
+
+        if (strlen(line) <= 1) continue;
+
+        int dayIndex;
+        char courseCode[21], time[21];
+        if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) {
+            if (currentRm) {
+                if (currentRm->scheduleCount < MAX_SCHEDULES) {
+                    Load_sched(currentRm, dayIndex, courseCode, time);
+                }
+            }
+        }
+    }
+
+    fclose(revertPtr);
+    
+    // Sort schedules after loading
+    struct Rooms *rm = current->head;
+    while (rm != NULL) {
+        Sort_sched(rm);
+        rm = rm->next;
+    }
+
+    // Save the reverted state as current
+    Save_cur_changes(current);
+}
+
+int Add_room(WINDOW *win,int height,int width,struct Buildings *building) {
+    if (!building) {
+        return -1;
+    }
+
+    // Save last changes first
+    Save_last_changes(building);
+
+    // Check if we can add more rooms
+    int roomCount = 0;
+    struct Rooms* currentRoom = building->head;
+    while (currentRoom != NULL) {
+        roomCount++;
+        currentRoom = currentRoom->next;
+    }
+
+    if (roomCount >= building->maxRooms) {
+        const char max_rooms[] = "Maximum rooms reached for this building";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height/2, (width-strlen(max_rooms))/2, "%s", max_rooms);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        return -1;
+    }
+
+    // Get room number from user
+    int roomNumber = Select_prompt(win, "Input Room Number: ");
+    if (roomNumber < 1) {
+        return -1;
+    }
+
+    // Check if room number already exists
+    currentRoom = building->head;
+    while (currentRoom != NULL) {
+        if (currentRoom->roomNumber == roomNumber) {
+            const char exists[] = "Room already exists";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height/2, (width-strlen(exists))/2, "%s", exists);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            return -1;
         }
         currentRoom = currentRoom->next;
     }
-    
-    struct Rooms *newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
+
+    // Create new room
+    struct Rooms *newRoom = (struct Rooms *)malloc(sizeof(struct Rooms));
+    if (!newRoom) {
+        const char no_mem[] = "Memory allocation failed";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height/2, (width-strlen(no_mem))/2, "%s", no_mem);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        return -1;
+    }
 
     newRoom->roomNumber = roomNumber;
     newRoom->scheduleCount = 0;
     newRoom->next = NULL;
     newRoom->prev = NULL;
 
-    // Insert the the end if roomNumber is greater than last of room
-    if(roomNumber > building->last->roomNumber) {
-        building->last->next = newRoom; 
-        newRoom->prev = building->last;
-        return;
+    // Handle empty list case
+    if (building->head == NULL) {
+        building->head = building->last = newRoom;
+        Save_cur_changes(building);
+        return -1;
     }
 
-    // Insert front if roomNumber less than head of room
-    if(roomNumber < building->head->roomNumber) {
-        newRoom->next = building->head; // next ng newroom naka point sa kasunod na list ng currentRoom
-        building->head->prev = newRoom; // prev ng kasunod ng currentRoom nakapoint sa newRoom
+    // Handle insertion at beginning
+    if (roomNumber < building->head->roomNumber) {
+        newRoom->next = building->head;
+        building->head->prev = newRoom;
         building->head = newRoom;
-        return;
+        Save_cur_changes(building);
+        return -1;
     }
 
-    currentRoom = building->head;
-    while(currentRoom != NULL) {
-        if(roomNumber < currentRoom->next->roomNumber) {
-            newRoom->next = currentRoom->next; // next ng newroom naka point sa kasunod na list ng currentRoom
-            currentRoom->next->prev = newRoom; // prev ng kasunod ng currentRoom nakapoint sa newRoom
+    // Handle insertion at end
+    if (roomNumber > building->last->roomNumber) {
+        building->last->next = newRoom;
+        newRoom->prev = building->last;
+        building->last = newRoom;
+        Save_cur_changes(building);
+        return -1;
+    }
 
-            newRoom->prev = currentRoom;
-            currentRoom->next = newRoom;
-            return;
-        }
+    // Handle insertion in middle
+    currentRoom = building->head;
+    while (currentRoom->next != NULL && currentRoom->next->roomNumber < roomNumber) {
         currentRoom = currentRoom->next;
     }
+
+    newRoom->next = currentRoom->next;
+    if (currentRoom->next != NULL) {
+        currentRoom->next->prev = newRoom;
+    }
+    newRoom->prev = currentRoom;
+    currentRoom->next = newRoom;
+
+    Save_cur_changes(building);
+    return -1;
 }
 // edit specific building info e.g. maxrooms, buildingnumber, etc
 void Edit_bldng(struct Buildings *building) {
@@ -1246,13 +1351,14 @@ void Del_roomsched(struct Rooms *room) {
     }
 }
 
-void Del_room(struct Buildings* currBuilding) {
+void Del_room(struct Buildings* currBuilding,int roomToDelete) {
+    if (!currBuilding || !currBuilding->head) {
+        return; // No building or no rooms to delete
+    }
+
+    Save_last_changes(currBuilding);
     struct Rooms* currRoom = currBuilding->head;
     struct Rooms* toDelete;
-
-    int roomToDelete;
-    printf("Enter room to delete: ");
-    scanf("%d", &roomToDelete);
 
     if(roomToDelete >= currBuilding->last->roomNumber) {    // Deletion at end
         toDelete = currBuilding->last;
@@ -1278,30 +1384,63 @@ void Del_room(struct Buildings* currBuilding) {
 }
 
 void Del_bldng(struct Buildings* currBuilding, int buildingToDelete) {
-    struct Buildings* currentBuilding = bHead;
-    struct Buildings* toDelete;
+    // First save last changes
+    Save_last_changes(currBuilding);
     
-    if(buildingToDelete >= bLast->buildingNumber) {    // Deletion at end
-        toDelete = bLast;
-        bLast = bLast->prev;
-        bLast->next = NULL;
-    } else if(buildingToDelete <= currentBuilding->buildingNumber) {       // Deletion at front
-        toDelete = bHead;
-        bHead = bHead->next;
-        bHead->prev = NULL;
-    } else {                                                // Deletion at any postiion
-        while(currentBuilding!=NULL) {
-            if(buildingToDelete == currentBuilding->buildingNumber) {
-                // Delete room
-                toDelete = currentBuilding;
-                currentBuilding->prev->next = currentBuilding->next;
-                currentBuilding->next->prev = currentBuilding->prev;
-                break;  
-            }
-            currentBuilding = currentBuilding->next;
+    struct Buildings* toDelete = NULL;
+    
+    // Find the building to delete
+    struct Buildings* current = bHead;
+    while(current != NULL) {
+        if(current->buildingNumber == buildingToDelete) {
+            toDelete = current;
+            break;
         }
+        current = current->next;
     }
+    
+    if(toDelete == NULL) {
+        return; // Building not found
+    }
+    
+    // Update neighbors' pointers
+    if(toDelete->prev != NULL) {
+        toDelete->prev->next = toDelete->next;
+    } else {
+        // This was the head node
+        bHead = toDelete->next;
+    }
+    
+    if(toDelete->next != NULL) {
+        toDelete->next->prev = toDelete->prev;
+    } else {
+        // This was the last node
+        bLast = toDelete->prev;
+    }
+    
+    // Free all rooms in the building first
+    struct Rooms* currentRoom = toDelete->head;
+    while(currentRoom != NULL) {
+        struct Rooms* nextRoom = currentRoom->next;
+        free(currentRoom);
+        currentRoom = nextRoom;
+    }
+    
+    // Now free the building
     free(toDelete);
+    
+    // Update the listOfBuildings.txt file (remove from active list)
+    FILE* listFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
+    if(listFile == NULL) {
+        return;
+    }
+    
+    current = bHead;
+    while(current != NULL) {
+        fprintf(listFile, "bld%d.txt\n", current->buildingNumber);
+        current = current->next;
+    }
+    fclose(listFile);
 }
 
 // Transforms Uppercase words to lowercase
@@ -1511,16 +1650,18 @@ void Sort_sched(struct Rooms* room) {
 }
 
 void freeAllLists() {
-    struct Buildings* currentBuilding = bHead;
-    while (currentBuilding!=NULL) {
-        struct Rooms* currentRooms = currentBuilding->head;
-        while (currentRooms!=NULL) {
-            struct Rooms* temp = currentRooms;
-            currentRooms = currentRooms->next;
-            free(temp);
+    struct Buildings *current = bHead;
+    while (current != NULL) {
+        struct Buildings *next = current->next;
+        // Free rooms in the building
+        struct Rooms *room = current->head;
+        while (room != NULL) {
+            struct Rooms *nextRoom = room->next;
+            free(room);
+            room = nextRoom;
         }
-        struct Buildings* temp = currentBuilding;
-        currentBuilding = currentBuilding->next;
-        free(temp);
+        free(current);
+        current = next;
     }
+    bHead = bLast = NULL;
 }

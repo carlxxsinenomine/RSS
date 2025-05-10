@@ -462,7 +462,6 @@ struct Rooms* selectRoom(WINDOW *win,int height,int width,struct Building *build
         if (current->roomNumber == roomNumber) { // if val of current->roomNumber is equal to current edi same room
             return current; // return the current room na imomodify
         }
-
         if (current->next == NULL) {
             const char inrn[]="Invalid Room Number";
             wattrset(win,A_REVERSE);
