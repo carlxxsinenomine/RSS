@@ -1,6 +1,5 @@
 Building No: 4
 Max Rooms: 18
-
 Room: 102
 0, it2b, 9am-10am
 
@@ -12,7 +11,4 @@ Room: 104
 
 Room: 105
 0, cs1a, 7am-9am
-
-Room: 106
-0, it2b, 9am-10am
 
