@@ -1,4 +1,0 @@
-bld1.txt
-bld2.txt
-bld4.txt
-bld5.txt

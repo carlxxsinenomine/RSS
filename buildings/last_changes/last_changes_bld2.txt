@@ -1,10 +1,2 @@
 Building No: 2
-Max Rooms: 18
-Room: 104
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-
-Room: 105
-0, cs1a, 7am-9am
-
+Max Rooms: 20

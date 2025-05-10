@@ -208,11 +208,11 @@ void admin_scr(void){
         wrefresh(win);
 
         int bNum;
-        struct Buildings* selectedBuilding;
-        struct Rooms* selectedRoom;
+        struct Buildings* selectedBuilding=NULL;
+        struct Rooms* selectedRoom=NULL;
         int buildingChoice;
         int roomOfChoice;
-
+        int ch_room;
         int ch_bldng=0;
 
         ch_bldng=wgetch(win);
@@ -232,7 +232,10 @@ void admin_scr(void){
                 int addBldng=Add_building(win,height,window_width);
                 if(addBldng!=-1){
                     flag=0;
+                    continue;
                 }
+                bytes_read=1;
+                continue;
             }
             else if(ch_bldng=='2'){
                 Print_bldng(win,height,window_width,"Admin/Delete Building");
@@ -300,7 +303,6 @@ void admin_scr(void){
 
             wrefresh(win);
 
-            int ch_room;
             ch_room=wgetch(win);
             if(ch_room=='1'){
                 Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/Add Rooms");
@@ -309,7 +311,8 @@ void admin_scr(void){
                     flag=1;
                     continue;
                 }
-                continue;
+                flag = 2;
+                // continue;
             }
             else if(ch_room=='2'){
                 Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/Delete Rooms");
@@ -1144,7 +1147,7 @@ void Revert_changes(struct Buildings *current) {
     Save_cur_changes(current);
 }
 
-int Add_room(WINDOW *win,int height,int width,struct Buildings *building) {
+int Add_room(WINDOW *win, int height, int width, struct Buildings *building) {
     if (!building) {
         return -1;
     }
@@ -1208,38 +1211,36 @@ int Add_room(WINDOW *win,int height,int width,struct Buildings *building) {
     // Handle empty list case
     if (building->head == NULL) {
         building->head = building->last = newRoom;
-    }
-
+    } 
     // Handle insertion at beginning
-    if (roomNumber < building->head->roomNumber) {
+    else if (roomNumber < building->head->roomNumber) {
         newRoom->next = building->head;
         building->head->prev = newRoom;
         building->head = newRoom;
     }
-
     // Handle insertion at end
-    if (roomNumber > building->last->roomNumber) {
+    else if (roomNumber > building->last->roomNumber) {
         building->last->next = newRoom;
         newRoom->prev = building->last;
+        building->last = newRoom;
     }
-
     // Handle insertion in middle
-    currentRoom = building->head;
-    while (currentRoom->next != NULL && currentRoom->next->roomNumber < roomNumber) {
-        currentRoom = currentRoom->next;
+    else {
+        currentRoom = building->head;
+        while (currentRoom->next != NULL && currentRoom->next->roomNumber < roomNumber) {
+            currentRoom = currentRoom->next;
+        }
+        newRoom->next = currentRoom->next;
+        if (currentRoom->next != NULL) {
+            currentRoom->next->prev = newRoom;
+        }
+        newRoom->prev = currentRoom;
+        currentRoom->next = newRoom;
     }
-
-    newRoom->next = currentRoom->next;
-    if (currentRoom->next != NULL) {
-        currentRoom->next->prev = newRoom;
-    }
-    newRoom->prev = currentRoom;
-    currentRoom->next = newRoom;
 
     Save_cur_changes(building);
-    return -1;
+    return 0; // Changed from -1 to 0 to indicate success
 }
-
 int Add_building(WINDOW *win,int height,int width) {
     int buildingNumber=Select_prompt(win,"Input Building Number: ");
 
@@ -1375,6 +1376,7 @@ int Add_building(WINDOW *win,int height,int width) {
 
     fclose(outFile);
     fclose(listOfBuildingsPtr);
+    return -1;
 }
 
 //  show aba

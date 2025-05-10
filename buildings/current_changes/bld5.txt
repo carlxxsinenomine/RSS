@@ -1,2 +1,0 @@
-Building No: 5
-Max Rooms: 10
