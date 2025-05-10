@@ -309,7 +309,6 @@ void admin_scr(void){
                     flag=1;
                     continue;
                 }
-                Save_cur_changes(selectedBuilding);
                 continue;
             }
             else if(ch_room=='2'){
@@ -322,7 +321,6 @@ void admin_scr(void){
                         continue;
                     }
                     Del_room(selectedBuilding,roomOfChoice);
-                    Save_cur_changes(selectedBuilding);
                     flag=1;
                     continue;
                 }
@@ -378,7 +376,6 @@ void admin_scr(void){
                 int ch_sched;
                 ch_sched=wgetch(win);
                 if(ch_sched=='1'){
-                    Save_last_changes(selectedBuilding);
                     Print_sched(height,window_width,selectedBuilding,selectedRoom,"Add Sched: ");
                     int addRoomSched=Add_roomsched(win,height,window_width,selectedRoom);
                     if(addRoomSched!=-1){
@@ -386,14 +383,11 @@ void admin_scr(void){
                         continue;
                     }
                     flag=1;
-                    Save_cur_changes(selectedBuilding);
                 }
                 else if(ch_sched=='2'){
-                    Save_last_changes(selectedBuilding);
                     Print_sched(height,window_width,selectedBuilding,selectedRoom,"Add Sched");
                     Del_roomsched(win,height,window_width,selectedRoom);
                     flag=2;
-                    Save_cur_changes(selectedBuilding);
                     continue;
                 }
                 else if(ch_sched=='3'){
@@ -523,6 +517,11 @@ char *Str_select_prompt(WINDOW *win, char input_text[]){
 	keypad(sub,TRUE);
 
 	char* user_input = malloc(20);
+    if (!user_input) {
+        delwin(sub);
+        return NULL;
+    }
+
 	int i;
 	int ch;
 
@@ -996,7 +995,6 @@ void Print_sched_changes(WINDOW *win,int height,int width,struct Buildings *buil
 
 // Save updated version
 void Save_cur_changes(struct Buildings *current) {
-    // savePTR; current saved datas will be stored;
     FILE* savePTR;
     char strBuildingNumber[5];
     sprintf(strBuildingNumber, "%d", current->buildingNumber);
@@ -1005,13 +1003,17 @@ void Save_cur_changes(struct Buildings *current) {
     strcat(dirCurrent, ".txt");
 
     savePTR = fopen(dirCurrent, "wt");
+    if (!savePTR) {
+        return; // Handle file opening error
+    }
 
     fprintf(savePTR, "Building No: %d\n", current->buildingNumber);
     fprintf(savePTR, "Max Rooms: %d\n", current->maxRooms);
+    
     struct Rooms *room = current->head;
-    while(room!=NULL) {
+    while(room != NULL) {
         fprintf(savePTR, "Room: %d\n", room->roomNumber);
-        for(int i=0; i < room->scheduleCount; i++) {
+        for(int i=0; i < room->scheduleCount; i++) {  // Fixed: Iterate through all schedules
             int dayIndex=0;
             for (int index = 0; index < MAX_DAYS; index++) {
                 if (strcasecmp(room->schedules[i].day, WEEK[index]) == 0) {
@@ -1019,7 +1021,9 @@ void Save_cur_changes(struct Buildings *current) {
                     break;
                 }
             }
-            fprintf(savePTR, "%d, %s, %s\n", dayIndex, room->schedules->programCode, room->schedules->time);
+            fprintf(savePTR, "%d, %s, %s\n", dayIndex, 
+                   room->schedules[i].programCode,  // Fixed: Use current index
+                   room->schedules[i].time);       // Fixed: Use current index
         }
         fprintf(savePTR, "\n");
         room = room->next;
@@ -1028,7 +1032,6 @@ void Save_cur_changes(struct Buildings *current) {
 }
 
 void Save_last_changes(struct Buildings *current) {
-    // changesPTR; where all the changes history will be written
     FILE* changesPTR;
     char strBuildingNumber[5];
     int buildingNumber = current->buildingNumber;
@@ -1039,13 +1042,17 @@ void Save_last_changes(struct Buildings *current) {
     strcat(dirChanges, ".txt");
 
     changesPTR = fopen(dirChanges, "wt");
+    if (!changesPTR) {
+        return;
+    }
+
     fprintf(changesPTR, "Building No: %d\n", buildingNumber);
     fprintf(changesPTR, "Max Rooms: %d\n", maxRooms);
 
     struct Rooms *room = current->head;
-    while(room!=NULL) {
+    while(room != NULL) {
         fprintf(changesPTR, "Room: %d\n", room->roomNumber);
-        for(int i=0; i < room->scheduleCount; i++) {
+        for(int i=0; i < room->scheduleCount; i++) {  // Fixed: Iterate through all schedules
             int dayIndex=0;
             for (int index = 0; index < MAX_DAYS; index++) {
                 if (strcasecmp(room->schedules[i].day, WEEK[index]) == 0) {
@@ -1053,8 +1060,9 @@ void Save_last_changes(struct Buildings *current) {
                     break;
                 }
             }
-
-            fprintf(changesPTR, "%d, %s, %s\n", dayIndex, room->schedules->programCode, room->schedules->time);
+            fprintf(changesPTR, "%d, %s, %s\n", dayIndex, 
+                   room->schedules[i].programCode,  // Fixed: Use current index
+                   room->schedules[i].time);       // Fixed: Use current index
         }
         fprintf(changesPTR, "\n");
         room = room->next;
@@ -1141,9 +1149,6 @@ int Add_room(WINDOW *win,int height,int width,struct Buildings *building) {
         return -1;
     }
 
-    // Save last changes first
-    Save_last_changes(building);
-
     // Check if we can add more rooms
     int roomCount = 0;
     struct Rooms* currentRoom = building->head;
@@ -1203,8 +1208,6 @@ int Add_room(WINDOW *win,int height,int width,struct Buildings *building) {
     // Handle empty list case
     if (building->head == NULL) {
         building->head = building->last = newRoom;
-        Save_cur_changes(building);
-        return -1;
     }
 
     // Handle insertion at beginning
@@ -1212,17 +1215,12 @@ int Add_room(WINDOW *win,int height,int width,struct Buildings *building) {
         newRoom->next = building->head;
         building->head->prev = newRoom;
         building->head = newRoom;
-        Save_cur_changes(building);
-        return -1;
     }
 
     // Handle insertion at end
     if (roomNumber > building->last->roomNumber) {
         building->last->next = newRoom;
         newRoom->prev = building->last;
-        building->last = newRoom;
-        Save_cur_changes(building);
-        return -1;
     }
 
     // Handle insertion in middle
@@ -1294,6 +1292,16 @@ int Add_building(WINDOW *win,int height,int width) {
     fclose(LOBuildingsChanges);
     
     struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
+    if (!newBuilding) {
+        const char no_mem[] = "Memory allocation failed";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height/2, (width-strlen(no_mem))/2, "%s", no_mem);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        return -1;
+    }
+
     newBuilding->buildingNumber = buildingNumber;
     newBuilding->maxRooms = maxRooms;
     newBuilding->head = NULL;
@@ -1330,6 +1338,8 @@ int Add_building(WINDOW *win,int height,int width) {
         }
     }
 
+    Save_last_changes(newBuilding);
+
     char bldFile[50];
     sprintf(bldFile, "./buildings/current_changes/bld%d.txt", buildingNumber);
     FILE* bldPtr = fopen(bldFile, "w");
@@ -1360,7 +1370,9 @@ int Add_building(WINDOW *win,int height,int width) {
         fprintf(outFile, "bld%d.txt\n", current->buildingNumber);
         current = current->next;
     }
-    
+
+    Save_cur_changes(newBuilding);
+
     fclose(outFile);
     fclose(listOfBuildingsPtr);
 }
@@ -1388,6 +1400,16 @@ void Del_roomsched(WINDOW *win,int height,int width,struct Rooms *room) {
         room->schedules[i] = room->schedules[i+1];
     }
     room->scheduleCount--;
+
+    struct Buildings* building = bHead;
+    while (building != NULL) {
+        if (building->head == room || building->last == room) {
+            Save_last_changes(building);
+            Save_cur_changes(building);
+            break;
+        }
+        building = building->next;
+    }
 
     // Show success message
     const char success[] = "Schedule deleted";
@@ -1431,9 +1453,7 @@ void Del_room(struct Buildings* currBuilding,int roomToDelete) {
 }
 
 void Del_bldng(struct Buildings* currBuilding, int buildingToDelete) {
-    // First save last changes
     Save_last_changes(currBuilding);
-    
     struct Buildings* toDelete = NULL;
     
     // Find the building to delete
@@ -1487,6 +1507,8 @@ void Del_bldng(struct Buildings* currBuilding, int buildingToDelete) {
         fprintf(listFile, "bld%d.txt\n", current->buildingNumber);
         current = current->next;
     }
+
+    Save_cur_changes(currBuilding);
     fclose(listFile);
 }
 
@@ -1649,6 +1671,16 @@ int Add_roomsched(WINDOW *win, int height, int width, struct Rooms* room) {
     strncpy(sched->day, day, sizeof(sched->day) - 1);
     strncpy(sched->programCode, coursecode, sizeof(sched->programCode) - 1);
     strncpy(sched->time, time, sizeof(sched->time) - 1);
+
+    struct Buildings* building = bHead;
+    while (building != NULL) {
+        if (building->head == room || building->last == room) {
+            Save_last_changes(building);
+            Save_cur_changes(building);
+            break;
+        }
+        building = building->next;
+    }
 
     free(day);
     return 0;

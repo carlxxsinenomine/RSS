@@ -47,7 +47,7 @@ void printLastChanges(struct Buildings *building, struct Rooms *room);
 void addRoom(struct Buildings *building);
 void addBuilding();
 void deleteRoomSchedule(struct Rooms *room);
-void deleteRoom(struct Buildings* currBuilding);
+void deleteRoom(struct Buildings* currBuilding, int roomToDelete);
 void deleteBuilding(struct Buildings* currBuilding, int buildingToDelete);
 void upToLower(char word[10]);
 void addRoomSchedule(struct Rooms* room);
@@ -158,19 +158,23 @@ int main() {
 
             switch(option) {
                 case '2':
-                    printf("\nEdit Building\n");// indicator kung annong mode
+                    // printf("\nEdit Building\n");// indicator kung annong mode
+                    _saveLastChanges(selectedBuilding);
                     editBuilding(selectedBuilding);
+                    _saveCurrentChanges(selectedBuilding);
                     continue;
                 case '3':
-                    printf("\nDelete Building\n");// indicator kung annong mode
+                    // printf("\nDelete Building\n");// indicator kung annong mode
+                    _saveLastChanges(selectedBuilding);
                     deleteBuilding(selectedBuilding, bNum);
+                    // _saveCurrentChanges(selectedBuilding);
                     continue;
                 case '4':
                     printRooms(selectedBuilding);
                     flag = 1;
                     continue;
                 case '5':
-                    printf("\nRevert Changes\n");
+                    // printf("\nRevert Changes\n");
                     revertChanges(selectedBuilding);
                     continue;
             }
@@ -190,19 +194,19 @@ int main() {
 
             switch (option) {
                 case '1': // Add Room
-                    printf("\nAdd Room\n");// indicator kung annong mode
+                    // printf("\nAdd Room\n");// indicator kung annong mode
                     _saveLastChanges(selectedBuilding);
                     addRoom(selectedBuilding);
                     _saveCurrentChanges(selectedBuilding);
                     break;
                 case '2':
-                    printf("\nDelete Room\n");// indicator kung annong mode
+                    // printf("\nDelete Room\n");// indicator kung annong mode
                     _saveLastChanges(selectedBuilding);
-                    deleteRoom(selectedBuilding);
+                    deleteRoom(selectedBuilding, roomOfChoice);
                     _saveCurrentChanges(selectedBuilding);
                     break;
                 case '3':
-                    printf("\nEdit Room\n");// indicator kung annong mode
+                    // printf("\nEdit Room\n");// indicator kung annong mode
                     _saveLastChanges(selectedBuilding);
                     editBuilding(selectedBuilding);
                     _saveCurrentChanges(selectedBuilding);
@@ -291,15 +295,24 @@ void printBuildings() {
  * @description: Prints the list of Rooms
  */
 void printRooms(struct Buildings *building) {
-    if (building->head == NULL) {
-        printf("No rooms in the list.\n");
+    // First check if the building pointer is valid
+    if (building == NULL) {
+        printf("Error: Building does not exist.\n");
         return;
     }
 
+    // Then check if there are any rooms
+    if (building->head == NULL) {
+        printf("No rooms available in this building.\n");
+        return;
+    }
+
+    // Print all rooms
     struct Rooms *current = building->head;
-    printf("Room List:\n");
+    printf("\nRoom List for Building %d:\n", building->buildingNumber);
+    
     while (current != NULL) {
-        printf("Room %d:\n", current->roomNumber);
+        printf("Room %d\n", current->roomNumber);
         current = current->next;
     }
 }
@@ -454,8 +467,10 @@ void printSelectedRoom(struct Rooms* room) {
 
 // Save updated version
 void _saveCurrentChanges(struct Buildings *current) {
-    // savePTR; current saved datas will be stored;
     FILE* savePTR;
+
+    // savePTR; current saved datas will be stored;
+
     char strBuildingNumber[5];
     sprintf(strBuildingNumber, "%d", current->buildingNumber);
     char dirCurrent[125] = "./buildings/current_changes/bld";
@@ -793,7 +808,7 @@ void addBuilding() {
     int buildingNumber;
     printf("Enter Building Number: e.g. (1, 2, 3)");
     scanf("%d", &buildingNumber);
-    if(buildingNumber < 1) return; // bawal nega
+    if(buildingNumber < 1) return; //
 
     FILE* listOfBuildingsPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "r");
     if(listOfBuildingsPtr == NULL) {
@@ -812,7 +827,7 @@ void addBuilding() {
     }
     
     int maxRooms;
-    printf("Enter Max Room for this building: ");
+    printf("Enter Building Max Room: ");
     scanf("%d", &maxRooms);
     if(maxRooms < 1) {
         fclose(listOfBuildingsPtr);
@@ -867,6 +882,13 @@ void addBuilding() {
         }
     }
 
+    char filePath[100];
+    snprintf(filePath, sizeof(filePath), "./buildings/current_changes/bld%d.txt", newBuilding->buildingNumber);
+    FILE *saveNewBuilding = fopen(filePath, "wt");
+    fprintf(saveNewBuilding, "Building No: %d\n", newBuilding->buildingNumber);
+    fprintf(saveNewBuilding, "Max Rooms: %d\n\n", newBuilding->maxRooms);
+    fclose(saveNewBuilding);
+
     FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
     if(outFile == NULL) {
         printf("Error reopening file for writing\n");
@@ -879,7 +901,6 @@ void addBuilding() {
         fprintf(outFile, "bld%d.txt\n", current->buildingNumber);
         current = current->next;
     }
-    
     fclose(outFile);
     fclose(listOfBuildingsPtr);
 }
@@ -908,13 +929,10 @@ void deleteRoomSchedule(struct Rooms *room) {
     }
 }
 
-void deleteRoom(struct Buildings* currBuilding) {
+void deleteRoom(struct Buildings* currBuilding, int roomToDelete) {
     struct Rooms* currRoom = currBuilding->head;
     struct Rooms* toDelete;
 
-    int roomToDelete;
-    printf("Enter room to delete: ");
-    scanf("%d", &roomToDelete);
 
     if(roomToDelete >= currBuilding->last->roomNumber) {    // Deletion at end
         toDelete = currBuilding->last;
@@ -940,32 +958,70 @@ void deleteRoom(struct Buildings* currBuilding) {
 }
 
 void deleteBuilding(struct Buildings* currBuilding, int buildingToDelete) {
-    struct Buildings* currentBuilding = bHead;
-    struct Buildings* toDelete;
-    
-    if(buildingToDelete >= bLast->buildingNumber) {    // Deletion at end
-        toDelete = bLast;
-        bLast = bLast->prev;
-        bLast->next = NULL;
-    } else if(buildingToDelete <= currentBuilding->buildingNumber) {       // Deletion at front
-        toDelete = bHead;
-        bHead = bHead->next;
-        bHead->prev = NULL;
-    } else {                                                // Deletion at any postiion
-        while(currentBuilding!=NULL) {
-            if(buildingToDelete == currentBuilding->buildingNumber) {
-                // Delete room
-                toDelete = currentBuilding;
-                currentBuilding->prev->next = currentBuilding->next;
-                currentBuilding->next->prev = currentBuilding->prev;
-                break;  
-            }
-            currentBuilding = currentBuilding->next;
-        }
+    if (bHead == NULL) {
+        printf("No buildings to delete.\n");
+        return;
     }
-    free(toDelete);
-}
 
+    struct Buildings* currentBuilding = bHead;
+    struct Buildings* toDelete = NULL;
+    
+    // Find the building to delete
+    while (currentBuilding != NULL) {
+        if (buildingToDelete == currentBuilding->buildingNumber) {
+            toDelete = currentBuilding;
+            break;
+        }
+        currentBuilding = currentBuilding->next;
+    }
+
+    if (toDelete == NULL) {
+        printf("Building not found.\n");
+        return;
+    }
+
+
+    // Handle deletion from linked list
+    if (toDelete == bHead) {       // Deletion at front
+        bHead = bHead->next;
+        if (bHead != NULL) {
+            bHead->prev = NULL;
+        } else {
+            bLast = NULL;  // List is now empty
+        }
+    } else if (toDelete == bLast) {    // Deletion at end
+        bLast = bLast->prev;
+        if (bLast != NULL) {
+            bLast->next = NULL;
+        } else {
+            bHead = NULL;  // List is now empty
+        }
+    } else {                          // Deletion in middle
+        toDelete->prev->next = toDelete->next;
+        toDelete->next->prev = toDelete->prev;
+    }
+
+    free(toDelete);
+
+    // Update the listOfBuildings.txt file
+    FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
+    if (outFile == NULL) {
+        printf("Error opening file for writing.\n");
+        return;
+    }
+
+    struct Buildings* current = bHead;
+    while (current != NULL) {
+        fprintf(outFile, "bld%d.txt\n", current->buildingNumber);
+        current = current->next;
+    }
+
+    fclose(outFile);
+    char filePath[100] = "./buildings/current_changes/bld";
+    sprintf(filePath, "%s%d.txt", filePath, buildingToDelete);
+    outFile = fopen(filePath, "wt");
+    fprintf(outFile, ""); // Erase file contents
+}
 // Transforms Uppercase words to lowercase
 void upToLower(char word[10]) {
     for (int i = 0; i < strlen(word); i++) {
