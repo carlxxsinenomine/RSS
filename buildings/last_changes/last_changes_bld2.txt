@@ -4,26 +4,7 @@ Room: 104
 0, it2b, 9am-10am
 0, it2b, 9am-10am
 0, it2b, 9am-10am
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-0, it2b, 9am-10am
-1, it2b, 9am-10am
-1, it2b, 9am-10am
-1, it2b, 9am-10am
-1, it2b, 9am-10am
-1, it2b, 9am-10am
-1, it2b, 9am-10am
-1, it2b, 9am-10am
-4, it2b, 9am-10am
-4, it2b, 9am-10am
-4, it2b, 9am-10am
 
-Room: 102
-0, it2b, 9am-10am
-1, it2b, 9am-10am
-4, it2b, 9am-10am
+Room: 105
+0, cs1a, 7am-9am
 
