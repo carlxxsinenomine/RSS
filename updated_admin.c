@@ -57,128 +57,8 @@ int _addRoomsched(WINDOW *win,int height,int width,struct Rooms* room);
 void Sort_sched(struct Rooms* room);
 void _revertChanges(struct Buildings *current);
 void freeAllLists();
-int editBuilding(WINDOW *win,int height,int width,struct Buildings *building) {
-    const char existed[] = "Building Number Already Existed!";
-    const char* lines[] = {"Building Number: ", "Max Rooms: "};
-    int n[] = {building->buildingNumber, building->maxRooms};
-    for(int line=0; line<2;line++) {
-        char line_size[20];
-        sprintf(line_size, "%-15s%d", lines[line], n[line]);
-        mvwprintw(win,height/2+line,(width-strlen(line_size))/2,"%s", line_size);
-        wattrset(win,A_NORMAL);
-        wrefresh(win);
-    }
-
-    int option = _selectPromt(win, "What do you want to edit: [1]BuildingNumber, [2]MaxRooms, [3]All");
-    int newBuildingNumber, newMaxRooms;
-    struct Buildings *current = bHead; // will be used to traverse the linkedlist of Buildings structure
-    switch (option) {
-        case 1:   
-            newBuildingNumber = _selectPromt(win, "Enter New Building Number: ");
-            if(newBuildingNumber<1) return 0; // error negative value
-            if(newBuildingNumber == building->buildingNumber) {
-                int exitOrRetry=_selectPromt(win, "Building Number is the same with the current building [1] Exit, [2] Retry: ");
-                if(exitOrRetry == 1)
-                    return -1;
-                else
-                    editBuilding(win,height,width,building);
-            }
-            //TODO: check if existing na building number
-            while(current!=NULL) {
-                if(newBuildingNumber == current->buildingNumber) {
-                    wattrset(win,A_REVERSE);
-                    mvwprintw(win,height/2,(width-strlen(existed))/2,"%s",existed);
-                    wattrset(win,A_NORMAL);
-                    wrefresh(win);
-                    napms(2000);
-                    return -1;
-                }
-                current = current->next;
-            }
-            building->buildingNumber = newBuildingNumber;
-            break;
-        case 2:
-            newMaxRooms=_selectPromt(win, "Enter New Max Rooms: ");
-            if(newMaxRooms<1) return 0; // error
-            building->maxRooms = newMaxRooms;
-            break;
-        case 3:
-            newBuildingNumber = _selectPromt(win, "Enter New Building Number: ");
-
-            if(newBuildingNumber<1) return 0; // error negative value
-            if(newBuildingNumber == building->buildingNumber) {
-                int exitOrRetry=_selectPromt(win, "Building Number is the same with the current building [1] Exit, [2] Retry: ");
-
-                if(exitOrRetry == 1)
-                    return -1;
-                else
-                    editBuilding(win,height,width,building);
-            }
-            //TODO: check if existing na building number
-            while(current!=NULL) {
-                if(newBuildingNumber == current->buildingNumber) {
-                    wattrset(win,A_REVERSE);
-                    mvwprintw(win,height/2,(width-strlen(existed))/2,"%s",existed);
-                    wattrset(win,A_NORMAL);
-                    wrefresh(win);
-                }
-                current = current->next;
-            }
-            building->buildingNumber = newBuildingNumber;
-
-            newMaxRooms=_selectPromt(win, "Enter New Max Rooms: ");
-
-            if(newMaxRooms<1) return 0; // error
-            building->maxRooms = newMaxRooms;
-            break;
-        default:
-            printf("Invalid");
-    }
-}
-
-void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
-    int rowToEdit=_selectPromt(win, "Select Row to Edit: ");
-
-    struct Schedule *current = &room->schedules[rowToEdit];
-    char* roomDay = current->day;
-    char* progCode = current->programCode;
-    char* roomTime = current->time;
-
-    int len = strlen(roomDay) + strlen(progCode) + strlen(roomTime);
-
-    wattrset(win,A_REVERSE);
-    mvwprintw(win,height/2,(width-len)/2,"%s %s %s",roomDay, progCode, roomTime);
-    wattrset(win,A_NORMAL);
-    wrefresh(win);
-
-    printf("%s, %s, %s\n", current->day, current->programCode, current->time);
-    int option=_selectPromt(win, "What do you want to edit: [1] Day, [2] Course Code, [3] Time, [4] All");
-    printf("%d", option);
-    if(option == -1) return;
-    if(option < 1) option = 1;
-    else if(option > 4) option = 4;
-    char* day, *programCode, *time;
-    switch(option) {
-        case 1:
-            day=Str__selectPromt(win, "Enter Day: ");
-            break;
-        case 2:
-            programCode=Str__selectPromt(win, "Enter Program Code: ");
-            break;
-        case 3:
-            time=Str__selectPromt(win, "Enter Time: ");
-            break;
-        case 4:
-            day=Str__selectPromt(win, "Enter Day: ");
-            programCode=Str__selectPromt(win, "Enter Course Code: ");
-            time=Str__selectPromt(win, "Enter Time: ");
-    }
-
-    strcpy(current->day, day);
-    strcpy(current->programCode, programCode);
-    strcpy(current->time, time);
-}
-
+int editBuilding(WINDOW *win,int height,int width,struct Buildings *building);
+void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room);
 
 /* @date_added: 04/10/2025
  * @return_type: void
@@ -1017,6 +897,105 @@ void _printSched(int height,int width,struct Buildings *building, struct Rooms* 
     wrefresh(sched_win);
 }
 
+int editBuilding(WINDOW *win,int height,int width,struct Buildings *building) {
+    const char existed[] = "Building Number Already Existed!";
+    const char* lines[] = {"Building Number: ", "Max Rooms: "};
+    int n[] = {building->buildingNumber, building->maxRooms};
+
+    int len = strlen(lines[0]) + strlen(lines[1]);
+    // New Window
+    int _height=height/7;
+    int _width=(width-len)/3;
+
+    int _y=(height-_height)/2;
+    int _x=width-_width/2;
+    WINDOW* _sub_win=newwin(_height, _width, _y, _x);
+    if(!_sub_win) {
+        printf("Failed to load screen");
+        exit(1);
+    }
+
+    wborder(_sub_win,'|','|','-','-','+','+','+','+');
+
+    char cur_building_status[70];
+    int currentBuildingNumber = building->buildingNumber;
+    sprintf(cur_building_status, "Building: %d", currentBuildingNumber);
+    status_bar(_sub_win, cur_building_status);
+
+    for(int line=0; line<2;line++) {
+        char line_size[20];
+        sprintf(line_size, "%s%d", lines[line], n[line]);
+        mvwprintw(_sub_win,_height/2+line,(_width-len)/2,"%s", line_size);
+        wrefresh(_sub_win);
+    }
+
+    int option = _selectPromt(win, "What do you want to edit: [1]BuildingNumber, [2]MaxRooms, [3]All");
+    int newBuildingNumber, newMaxRooms;
+    struct Buildings *current = bHead; // will be used to traverse the linkedlist of Buildings structure
+    switch (option) {
+        case 1:   
+            newBuildingNumber = _selectPromt(win, "Enter New Building Number: ");
+            if(newBuildingNumber<1) return 0; // error negative value
+            if(newBuildingNumber == building->buildingNumber) {
+                int exitOrRetry=_selectPromt(win, "Building Number is the same with the current building [1] Exit, [2] Retry: ");
+                if(exitOrRetry == 1)
+                    return -1;
+                else
+                    editBuilding(win,height,width,building);
+            }
+            //TODO: check if existing na building number
+            while(current!=NULL) {
+                if(newBuildingNumber == current->buildingNumber) {
+                    wattrset(win,A_REVERSE);
+                    mvwprintw(win,height/2,(width-strlen(existed))/2,"%s",existed);
+                    wattrset(win,A_NORMAL);
+                    wrefresh(win);
+                    napms(2000);
+                    return -1;
+                }
+                current = current->next;
+            }
+            building->buildingNumber = newBuildingNumber;
+            break;
+        case 2:
+            newMaxRooms=_selectPromt(win, "Enter New Max Rooms: ");
+            if(newMaxRooms<1) return 0; // error
+            building->maxRooms = newMaxRooms;
+            break;
+        case 3:
+            newBuildingNumber = _selectPromt(win, "Enter New Building Number: ");
+
+            if(newBuildingNumber<1) return 0; // error negative value
+            if(newBuildingNumber == building->buildingNumber) {
+                int exitOrRetry=_selectPromt(win, "Building Number is the same with the current building [1] Exit, [2] Retry: ");
+
+                if(exitOrRetry == 1)
+                    return -1;
+                else
+                    editBuilding(win,height,width,building);
+            }
+            //TODO: check if existing na building number
+            while(current!=NULL) {
+                if(newBuildingNumber == current->buildingNumber) {
+                    wattrset(win,A_REVERSE);
+                    mvwprintw(win,height/2,(width-strlen(existed))/2,"%s",existed);
+                    wattrset(win,A_NORMAL);
+                    wrefresh(win);
+                }
+                current = current->next;
+            }
+            building->buildingNumber = newBuildingNumber;
+
+            newMaxRooms=_selectPromt(win, "Enter New Max Rooms: ");
+
+            if(newMaxRooms<1) return 0; // error
+            building->maxRooms = newMaxRooms;
+            break;
+        default:
+            printf("Invalid");
+    }
+}
+
 /**
  * @date_added: 4/15
  * @return_type: void
@@ -1132,6 +1111,69 @@ void _printSched_changes(WINDOW *win,int height,int width,struct Buildings *buil
     }
     delwin(cur_sched);
     delwin(last_sched);
+}
+
+void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
+    int rowToEdit=_selectPromt(win, "Select Row to Edit: ");
+
+    struct Schedule *current = &room->schedules[rowToEdit];
+    char* roomDay = current->day;
+    char* progCode = current->programCode;
+    char* roomTime = current->time;
+
+    int len = strlen(roomDay) + strlen(progCode) + strlen(roomTime);
+    // New Window
+    int _height=height/10;
+    int _width=(width-len)/3;
+
+    int _y=(height)/2;
+    int _x=width-_width/2;
+    WINDOW* _sub_win=newwin(_height, _width, _y, _x);
+    if(!_sub_win) {
+        printf("Failed to load screen");
+        exit(1);
+    }
+
+    wborder(_sub_win,'|','|','-','-','+','+','+','+');
+
+    char cur_room_status[70];
+    int currentRoomNumber = room->roomNumber;
+    sprintf(cur_room_status, "Room: %d", currentRoomNumber);
+    status_bar(_sub_win, cur_room_status);
+
+    mvwprintw(_sub_win,_height/2,(_width-len)/2,"[%s] [%s] [%s]",roomDay, progCode, roomTime);
+    wrefresh(_sub_win);
+    // wattrset(win,A_REVERSE);
+    // mvwprintw(win,height/2,(width-len)/2,"%s %s %s",roomDay, progCode, roomTime);
+    // wattrset(win,A_NORMAL);
+    // wrefresh(win);
+
+    printf("%s, %s, %s\n", current->day, current->programCode, current->time);
+    int option=_selectPromt(win, "What do you want to edit: [1] Day, [2] Course Code, [3] Time, [4] All");
+    printf("%d", option);
+    if(option == -1) return;
+    if(option < 1) option = 1;
+    else if(option > 4) option = 4;
+    char* day, *programCode, *time;
+    switch(option) {
+        case 1:
+            day=Str__selectPromt(win, "Enter Day: ");
+            break;
+        case 2:
+            programCode=Str__selectPromt(win, "Enter Program Code: ");
+            break;
+        case 3:
+            time=Str__selectPromt(win, "Enter Time: ");
+            break;
+        case 4:
+            day=Str__selectPromt(win, "Enter Day: ");
+            programCode=Str__selectPromt(win, "Enter Course Code: ");
+            time=Str__selectPromt(win, "Enter Time: ");
+    }
+
+    strcpy(current->day, day);
+    strcpy(current->programCode, programCode);
+    strcpy(current->time, time);
 }
 
 // Save updated version
