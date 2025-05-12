@@ -153,6 +153,8 @@ void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
 
     printf("%s, %s, %s\n", current->day, current->programCode, current->time);
     int option=_selectPromt(win, "What do you want to edit: [1] Day, [2] Course Code, [3] Time, [4] All");
+    printf("%d", option);
+    if(option == -1) return;
     if(option < 1) option = 1;
     else if(option > 4) option = 4;
     char* day, *programCode, *time;
@@ -397,7 +399,9 @@ void admin_scr(void){
                     selectedBuilding = _selectBuilding(win, height, window_width, buildingChoice);
                     if (!selectedBuilding)
                     break;
+                    _saveLastChanges(selectedBuilding);
                     editBuilding(win, height, window_width, selectedBuilding);
+                    _saveCurrentChanges(selectedBuilding);
                     flag=0;
                     break;
                 case 'x':
@@ -531,7 +535,9 @@ void admin_scr(void){
                     break;
                 case '5':
                     _printSched(height, window_width, selectedBuilding, selectedRoom, "Edit Sched");
+                    _saveLastChanges(selectedBuilding);
                     editRoomSchedule(win, height, window_width, selectedRoom);
+                    _saveCurrentChanges(selectedBuilding);
                     flag = 2;
                     break;
                 case 'x':
