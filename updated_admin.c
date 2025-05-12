@@ -533,6 +533,7 @@ void admin_scr(void){
                     _printSched(height, window_width, selectedBuilding, selectedRoom, "Edit Sched");
                     editRoomSchedule(win, height, window_width, selectedRoom);
                     flag = 2;
+                    break;
                 case 'x':
                 case 'X':
                     flag=1;
