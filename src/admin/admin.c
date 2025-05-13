@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
 
 #include "global.h"
 
@@ -34,29 +35,34 @@ struct Buildings {
 
 char* WEEK[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
-int Select_prompt(WINDOW *win,char input_text[]);
-char *Str_select_prompt(WINDOW *win, char input_text[]);
-void Print_bldng(WINDOW *win,int height,int width,char status[]);
-void Print_rooms(WINDOW *win,int height,int width,struct Buildings *building,char status[]);
-void Load_sched(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
-struct Buildings* Load_bldngs(int buildingNumber, int maxRms);
-struct Rooms* Load_room(int roomNumber, struct Buildings *currentBuilding);
-struct Rooms* Select_room(WINDOW *win,int height,int width,int roomNumber, struct Buildings* currentBuilding);
-struct Buildings* Select_bldng(WINDOW *win,int height,int width,int bNum);
-void Print_sched(int height,int width,struct Buildings *building, struct Rooms* room,char status[]);
-void Print_sched_changes(WINDOW *win,int height,int width,struct Buildings *building, struct Rooms* room);
-void Save_cur_changes(struct Buildings *current);
-void Save_last_changes(struct Buildings *current);
-int Add_room(WINDOW *win,int height,int width,struct Buildings *building);
+int _selectPromt(WINDOW *win,char input_text[]);
+char *_strSelectPromt(WINDOW *win, char input_text[]);
+void _printBuildings(WINDOW *win,int height,int width,char status[]);
+void _printRoom(WINDOW *win,int height,int width,struct Buildings *building,char status[]);
+void _loadSchedules(struct Rooms *room, int dayIndex, const char *courseCode, const char *time);
+struct Buildings* _loadBuildings(int buildingNumber, int maxRms);
+struct Rooms* _loadRooms(int roomNumber, struct Buildings *currentBuilding);
+struct Rooms* _selectRoom(WINDOW *win,int height,int width,int roomNumber, struct Buildings* currentBuilding);
+struct Buildings* _selectBuilding(WINDOW *win,int height,int width,int bNum);
+void _printSched(int height,int width,struct Buildings *building, struct Rooms* room,char status[]);
+void _printSched_changes(WINDOW *win,int height,int width,struct Buildings *building, struct Rooms* room);
+void _saveCurrentChanges(struct Buildings *current);
+void _saveLastChanges(struct Buildings *current);
+int _addRoom(WINDOW *win,int height,int width,struct Buildings *building);
 int Add_building(WINDOW *win,int height,int width);
-void Del_roomsched(WINDOW *win,int height,int width,struct Rooms *room);
-void Del_room(struct Buildings* currBuilding,int roomToDelete);
-void Del_bldng(struct Buildings* currBuilding, int buildingToDelete);
+void _deleteRoomsched(WINDOW *win,int height,int width,struct Rooms *room);
+void _deleteRoom(struct Buildings* currBuilding,int roomToDelete);
+void _deleteBuilding(struct Buildings* currBuilding, int buildingToDelete);
 void Up2low(char word[10]);
-int Add_roomsched(WINDOW *win,int height,int width,struct Rooms* room);
-void Sort_sched(struct Rooms* room);
-void Revert_changes(struct Buildings *current);
+int _addRoomsched(WINDOW *win,int height,int width,struct Rooms* room);
+void _sortSchedules(struct Rooms* room);
+void _revertChanges(struct Buildings *current);
 void freeAllLists();
+int editBuilding(WINDOW *win,int height,int width,struct Buildings *building);
+void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room);
+void updateListOfBuildings(struct Buildings* building);
+int is_valid_time_string(const char *str);
+int convertToMinutes(int hour, int minute, int isAM);
 
 /* @date_added: 04/10/2025
  * @return_type: void
@@ -109,7 +115,7 @@ void admin_scr(void){
             sscanf(line, "Max Rooms: %d", &maxRooms);
 
             int roomsCount = 0; // for checking purposes;
-            struct Buildings *building = Load_bldngs(bNumber, maxRooms);
+            struct Buildings *building = _loadBuildings(bNumber, maxRooms);
             struct Rooms *room = NULL;
             while (fgets(line, sizeof(line), CBPtr)) {
                 // If Room: is present on the string
@@ -121,7 +127,7 @@ void admin_scr(void){
                     }
                     int currentRoom = 0;
                     sscanf(line, "Room: %d", &currentRoom);
-                    room = Load_room(currentRoom, building);
+                    room = _loadRooms(currentRoom, building);
                     continue;
                 }
     
@@ -133,7 +139,7 @@ void admin_scr(void){
     
                 if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) // == 3; if 3 values are read
                     if (room)
-                        Load_sched(room, dayIndex, courseCode, time);
+                        _loadSchedules(room, dayIndex, courseCode, time);
             }
             fclose(CBPtr);
         }
@@ -141,7 +147,7 @@ void admin_scr(void){
         while (currentBuilding != NULL) {
             struct Rooms *currentRoom = currentBuilding->head;
             while (currentRoom != NULL) {
-                Sort_sched(currentRoom);
+                _sortSchedules(currentRoom);
                 currentRoom = currentRoom->next;
             }
             currentBuilding = currentBuilding->next;
@@ -162,6 +168,7 @@ void admin_scr(void){
         "[2] Delete Building",
         "[3] View Building  ",
         "[4] Revert Changes ",
+        "[5] Edit Building  ",
     };
     int bnt_row_size=sizeof(bldng_nav_text)/sizeof(bldng_nav_text[0]);
 
@@ -176,17 +183,25 @@ void admin_scr(void){
         "[1] Add Schedule      ",
         "[2] Delete Schedule   ",
         "[3] Print Schedule    ",
-        "[4] Print Last Changes"
+        "[4] Print Last Changes",
+        "[5] Edit Schedule     ",
     };
     int snt_row_size=sizeof(sched_nav_text)/sizeof(sched_nav_text[0]);
 
     char ext[]="[X] Exit";
 
     fclose(LOBPtr);
+    int flag=0;
+    struct Buildings* selectedBuilding=NULL;
+    struct Rooms* selectedRoom=NULL;
 
-    int flag = 0;
+
 // Sort each schedules per buildings and rooms
     while(flag!=-1) {
+        int bNum;
+        int buildingChoice;
+        int roomOfChoice;
+        int input;
         wclear(win);
         status_bar(win,"Admin");
         wborder(win,'|','|','-','-','+','+','+','+');
@@ -207,17 +222,10 @@ void admin_scr(void){
 
         wrefresh(win);
 
-        int bNum;
-        struct Buildings* selectedBuilding=NULL;
-        struct Rooms* selectedRoom=NULL;
-        int buildingChoice;
-        int roomOfChoice;
-        int ch_room;
-        int ch_bldng=0;
-
-        ch_bldng=wgetch(win);
+        // input=wgetch(win);
         if(flag==0){
-            if(!bytes_read && ch_bldng!='1'){
+            input=wgetch(win);
+            if(!bytes_read && input!='1'){
                 const char no_bldng_avail[]="Buildings unavailable, please add buildings first";
                 wattrset(win,A_REVERSE);
 				mvwprintw(win,height/2,(width-strlen(no_bldng_avail))/2,"%s",no_bldng_avail);
@@ -227,62 +235,75 @@ void admin_scr(void){
                 admin_scr();
             }
 
-            if(ch_bldng=='1'){
-                Print_bldng(win,height,window_width,"Admin/Add Building");
-                int addBldng=Add_building(win,height,window_width);
-                if(addBldng!=-1){
+            switch(input) {
+                case '1':
+                    _printBuildings(win, height, window_width, "Admin/Add Building");
+                    int addBldng = Add_building(win, height, window_width);
+                    // if (addBldng != -1) {
+                    //     flag = 0;
+                    //     continue;
+                    // }
+                    bytes_read = 1;
+                    break;
+                case '2':
+                    _printBuildings(win, height, window_width, "Admin/Delete Building");
+                    int delBldng = _selectPromt(win, "Input Building Number to Delete: ");
+                    if (delBldng == -1) continue;
+                    selectedBuilding = _selectBuilding(win, height, window_width, delBldng);
+                    if (!selectedBuilding)
+                        break;
+                    _deleteBuilding(selectedBuilding, delBldng);
                     flag=0;
+                    break;
+                case '3':
+                    _printBuildings(win, height, window_width, "Admin/View Building");
+                    buildingChoice = _selectPromt(win, "Input Building: ");
+                    if (buildingChoice != -1) {
+                        selectedBuilding = _selectBuilding(win, height, window_width, buildingChoice);
+                        if (selectedBuilding)
+                            flag = 1;
+                    }
+                    break;
+                case '4':
+                    _printBuildings(win, height, window_width, "Admin/Revert Changes");
+                    buildingChoice = _selectPromt(win, "Input Building to Revert: ");
+                    if (buildingChoice == -1)
+                        break;
+                    selectedBuilding = _selectBuilding(win, height, window_width, buildingChoice);
+                    if (!selectedBuilding)
+                        break;
+                    _revertChanges(selectedBuilding);
+                    flag=0;
+                    break;
+                case '5':
+                    _printBuildings(win, height, window_width, "Admin/Edit Building");
+                    buildingChoice = _selectPromt(win, "Input Building to Edit: ");
+                    if (buildingChoice == -1)
+                    break;
+                    selectedBuilding = _selectBuilding(win, height, window_width, buildingChoice);
+                    if (!selectedBuilding)
+                    break;
+                    _saveLastChanges(selectedBuilding);
+                    editBuilding(win, height, window_width, selectedBuilding);
+                    _saveCurrentChanges(selectedBuilding);
+                    flag=0;
+                    break;
+                case 'x':
+                case 'X':
+                    flag=-1;
+                    freeAllLists();
+                    delwin(win);
                     continue;
                 }
-                bytes_read=1;
-                continue;
-            }
-            else if(ch_bldng=='2'){
-                Print_bldng(win,height,window_width,"Admin/Delete Building");
-                int delBldng=Select_prompt(win,"Input Building Number to Delete: ");
-                if(delBldng!=-1){
-                    selectedBuilding=Select_bldng(win,height,window_width,delBldng);
-                    if(!selectedBuilding){
-                        continue;
-                    }
-                    Del_bldng(selectedBuilding,delBldng);
-                    flag=0;
-                }
-            }
-            else if(ch_bldng=='3'){
-                Print_bldng(win,height,window_width,"Admin/View Building");
-                buildingChoice=Select_prompt(win,"Input Building: ");
-                if(buildingChoice!=-1){
-                    selectedBuilding=Select_bldng(win,height,window_width,buildingChoice);
-                    if(!selectedBuilding){
-                        continue;
-                    }
-                    flag=1;
-                }
-            }
-            else if(ch_bldng=='4'){
-                Print_bldng(win,height,window_width,"Admin/Revert Changes");
-                buildingChoice=Select_prompt(win,"Input Building to Revert: ");
-                if(buildingChoice!=-1){
-                    selectedBuilding=Select_bldng(win,height,window_width,buildingChoice);
-                    if(!selectedBuilding){
-                        continue;
-                    }
-                    Revert_changes(selectedBuilding);
-                    flag=0;
-                }
-            }
-            else if(toupper(ch_bldng)==('X')){
-                flag=-1;
-                freeAllLists();
-                delwin(win);
-                break;
-            }
 
-            wrefresh(win);
-            check_winsize(win,height,window_width);
+                // if (toupper(input) == ('X')) {
+                //     flag=-1;
+                //     freeAllLists();
+                //     delwin(win);
+                //     continue;
+                // }
         }
-        while(flag==1){
+        else if(flag==1){
             wclear(win);
             status_bar(win,"Admin/View Building/Rooms");
             wborder(win,'|','|','-','-','+','+','+','+');
@@ -303,122 +324,123 @@ void admin_scr(void){
 
             wrefresh(win);
 
-            ch_room=wgetch(win);
-            if(ch_room=='1'){
-                Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/Add Rooms");
-                int addRoom=Add_room(win,height,window_width,selectedBuilding);
-                if(addRoom!=-1){
-                    flag=1;
-                    continue;
-                }
-                flag = 2;
-                // continue;
-            }
-            else if(ch_room=='2'){
-                Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Building/Delete Rooms");
-                roomOfChoice=Select_prompt(win,"Select Room to Delete: ");
-                if(roomOfChoice!=-1){
-                    selectedRoom=Select_room(win,height,window_width,roomOfChoice,selectedBuilding);
-                    if(!selectedRoom){
-                        flag=1;
-                        continue;
-                    }
-                    Del_room(selectedBuilding,roomOfChoice);
-                    flag=1;
-                    continue;
-                }
-            }
-            else if(ch_room=='3'){
-                char bldng_line_size[40];
-                int currentBuildingNumber = selectedBuilding->buildingNumber;
-                sprintf(bldng_line_size,"Admin/View Building/Building %d/Rooms",currentBuildingNumber);
-    
-                status_bar(win,bldng_line_size);
+            input=wgetch(win);
 
-                Print_rooms(win,height,window_width,selectedBuilding,"Admin/View Room");
-                roomOfChoice=Select_prompt(win,"Input Room: ");
-                if(roomOfChoice!=-1){
-                    selectedRoom=Select_room(win,height,window_width,roomOfChoice,selectedBuilding);
-                    if(!selectedRoom){
-                        flag=1;
-                        continue;
+            switch (input) {
+                case '1':
+                    _printRoom(win, height, window_width, selectedBuilding, "Admin/View Building/Add Rooms");
+                    int addRoom = _addRoom(win, height, window_width, selectedBuilding);
+                    // if (addRoom != -1) continue;
+                    flag=1;
+                    break;
+                case '2':
+                    _printRoom(win, height, window_width, selectedBuilding, "Admin/View Building/Delete Rooms");
+                    roomOfChoice = _selectPromt(win, "Select Room to Delete: ");
+                    if (roomOfChoice == -1) 
+                        break;
+                    selectedRoom = _selectRoom(win, height, window_width, roomOfChoice, selectedBuilding);
+                    if (!selectedRoom)
+                        break;
+                    _deleteRoom(selectedBuilding, roomOfChoice);
+                    flag=1;
+                    break;
+                case '3':
+                    char bldng_line_size[40];
+                    sprintf(bldng_line_size, "Admin/View Building/Building %d/Rooms", selectedBuilding->buildingNumber);
+                    status_bar(win, bldng_line_size);
+                    _printRoom(win, height, window_width, selectedBuilding, "Admin/View Room");
+                    roomOfChoice = _selectPromt(win, "Input Room: ");
+                    if (roomOfChoice != -1) {
+                        selectedRoom = _selectRoom(win, height, window_width, roomOfChoice, selectedBuilding);
+                        if (selectedRoom)
+                            flag = 2;
                     }
-                    flag=2;
+                    break;
+                case 'x':
+                case 'X':
+                    flag=0;
+                    selectedBuilding=NULL;
+                    break;
                 }
+                // if (toupper(input) == ('X')) {
+                //     flag = 0;
+                //     break;
+                // }
+                
+        }
+        else if(flag==2) {
+            int Select_sched_nav=0;
+             wclear(win);
+            status_bar(win,"Admin/Buildigs/Rooms/Schedules");
+            wborder(win,'|','|','-','-','+','+','+','+');
+
+            for (int i = 0; i < adt_row_size; i++) {
+                int len = strlen(admin_text[i]);
+                int tab = (window_width - len) / 2;
+                mvwprintw(win, i + 3, tab, "%s", admin_text[i]);
             }
-            else if(toupper(ch_room)==('X')){
-                flag=0;
-                selectedBuilding=NULL;
-                break;
+
+            for (int i = 0; i < snt_row_size; i++) {
+                int len = strlen(sched_nav_text[i]);
+                int tab = (window_width - len) / 2;
+                mvwprintw(win, (height / 2) - rnt_row_size + i * 2, tab, "%s", sched_nav_text[i]);
             }
+
+            mvwprintw(win, height - 4, (window_width - strlen(ext)) / 2, "%s", ext);
             wrefresh(win);
-            check_winsize(win,height,window_width);
 
-            while(flag==2){
-                int Select_sched_nav=0;
-                wclear(win);
-                status_bar(win,"Admin/Buildigs/Rooms/Schedules");
-                wborder(win,'|','|','-','-','+','+','+','+');
-    
-                for(int i=0;i<adt_row_size;i++){
-                    int len=strlen(admin_text[i]);
-                    int tab=(window_width-len)/2;
-                    mvwprintw(win,i+3,tab,"%s",admin_text[i]);
-                }
-    
-                for(int i=0;i<snt_row_size;i++){
-                    int len=strlen(sched_nav_text[i]);
-                    int tab=(window_width-len)/2;
-                    mvwprintw(win,(height/2)-rnt_row_size+i*2,tab,"%s",sched_nav_text[i]);
-                }
-    
-                mvwprintw(win,height-4,(window_width-strlen(ext))/2,"%s",ext);
-    
-                wrefresh(win);
-    
-                int ch_sched;
-                ch_sched=wgetch(win);
-                if(ch_sched=='1'){
-                    Print_sched(height,window_width,selectedBuilding,selectedRoom,"Add Sched: ");
-                    int addRoomSched=Add_roomsched(win,height,window_width,selectedRoom);
-                    if(addRoomSched!=-1){
-                        flag=2;
-                        continue;
-                    }
-                    flag=1;
-                }
-                else if(ch_sched=='2'){
-                    Print_sched(height,window_width,selectedBuilding,selectedRoom,"Add Sched");
-                    Del_roomsched(win,height,window_width,selectedRoom);
+            input=wgetch(win);
+
+            switch (input) {
+                case '1':
+                    _printSched(height, window_width, selectedBuilding, selectedRoom, "Add Sched: ");
+                    int addRoomSched = _addRoomsched(win, height, window_width, selectedRoom);
+                    // if (addRoomSched == -1)
+                    // {
+                    //     flag = 2;
+                    //     continue;
+                    // }
+                    // flag = 1;
                     flag=2;
-                    continue;
-                }
-                else if(ch_sched=='3'){
-                    Print_sched(height,window_width,selectedBuilding,selectedRoom,"Add Sched");
+                    break;
+                case '2':
+                    _printSched(height, window_width, selectedBuilding, selectedRoom, "Add Sched");
+                    _deleteRoomsched(win, height, window_width, selectedRoom);
+                    flag = 2;
+                    break;
+                case '3':
+                    _printSched(height, window_width, selectedBuilding, selectedRoom, "Add Sched");
                     wgetch(win);
-                    flag=2;
-                    continue;
-                }
-                else if(ch_sched=='4'){
-                    Print_sched_changes(win,height,window_width,selectedBuilding,selectedRoom);
-                    flag=2;
-                    continue;
-                }
-                else if(toupper(ch_sched)==('X')){
+                    flag = 2;
+                    break;
+                case '4':
+                    _printSched_changes(win, height, window_width, selectedBuilding, selectedRoom);
+                    flag = 2;
+                    break;
+                case '5':
+                    _printSched(height, window_width, selectedBuilding, selectedRoom, "Edit Sched");
+                    _saveLastChanges(selectedBuilding);
+                    editRoomSchedule(win, height, window_width, selectedRoom);
+                    _saveCurrentChanges(selectedBuilding);
+                    flag = 2;
+                    break;
+                case 'x':
+                case 'X':
                     flag=1;
                     selectedRoom=NULL;
                     break;
                 }
-                wrefresh(win);
-                check_winsize(win,height,window_width);
+                // if (toupper(input) == ('X')) {
+                //     flag = 1;
+                //     break;
+                // }
             }
+            wrefresh(win);
+            check_winsize(win, height, window_width);
         }
-        wrefresh(win);
-		check_winsize(win,height,window_width);
-    }
 }
 
-int Select_prompt(WINDOW *win,char input_text[]){
+int _selectPromt(WINDOW *win,char input_text[]){
 	noecho();
 
     //Get win size
@@ -502,14 +524,14 @@ int Select_prompt(WINDOW *win,char input_text[]){
 	keypad(sub,FALSE);
 }
 
-char *Str_select_prompt(WINDOW *win, char input_text[]){
+char *_strSelectPromt(WINDOW *win, char input_text[]){
     noecho();
 
 	//Get window size
 	int height,width;
 	getmaxyx(win,height,width);
 	
-	//Creates screen for Str_select_prompt
+	//Creates screen for _strSelectPromt
 	WINDOW *sub=newwin(3,width-2,height-4,(width/2)+1);
 	
 	if(!sub){
@@ -597,7 +619,7 @@ char *Str_select_prompt(WINDOW *win, char input_text[]){
  * @description: Prints the list of Buildingss
  */
 
-void Print_bldng(WINDOW *win,int height,int width,char status[]) {
+void _printBuildings(WINDOW *win,int height,int width,char status[]) {
     wclear(win);
 
     wborder(win,'|','|','-','-','+','+','+','+');
@@ -636,10 +658,10 @@ void Print_bldng(WINDOW *win,int height,int width,char status[]) {
 /**
  * @date_added: 4/15
  * @return_type: void
- * @parameter: Accepts an Building type Structure
+ * @parameter: AprogCodeepts an Building type Structure
  * @description: Prints the list of Rooms
  */
-void Print_rooms(WINDOW *win,int height,int width,struct Buildings *building,char status[]) {
+void _printRoom(WINDOW *win,int height,int width,struct Buildings *building,char status[]) {
     wclear(win);
 
     wborder(win,'|','|','-','-','+','+','+','+');
@@ -685,10 +707,10 @@ void Print_rooms(WINDOW *win,int height,int width,struct Buildings *building,cha
 /**
  * @date_added: 4/15
  * @return_type: void
- * @parameter: Accepts a Room type Structure, Int, Char 
+ * @parameter: AprogCodeepts a Room type Structure, Int, Char 
  * @description: Adds data to an Array of Schedule Structure of the cuurent Room object passed as an argument
  */
-void Load_sched(struct Rooms *room, int dayIndex, const char *courseCode, const char *time) {
+void _loadSchedules(struct Rooms *room, int dayIndex, const char *courseCode, const char *time) {
     if (room->scheduleCount >= MAX_SCHEDULES) {
         printf("Cannot add more schedules to room %d\n", room->roomNumber);
         return;
@@ -708,10 +730,10 @@ void Load_sched(struct Rooms *room, int dayIndex, const char *courseCode, const 
 /**
  * @date_added: 4/16
  * @return_type: Buildings Structure
- * @parameter: Accepts an Int
+ * @parameter: AprogCodeepts an Int
  * @description: Creates a linked list of Building
  */
-struct Buildings* Load_bldngs(int buildingNumber, int maxRms) {
+struct Buildings* _loadBuildings(int buildingNumber, int maxRms) {
     struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
     if (!newBuilding) { // if new building is NULL
         printf("Memory allocation failed.");
@@ -738,10 +760,10 @@ struct Buildings* Load_bldngs(int buildingNumber, int maxRms) {
 /**
  * @date_added: 4/15
  * @return_type: RoomsStructure
- * @parameter: Accepts an INt, Buildings Structure
+ * @parameter: AprogCodeepts an INt, Buildings Structure
  * @description: Creates a linked list of Rooms inside a structure of Building
  */
-struct Rooms* Load_room(int roomNumber, struct Buildings *currentBuilding) {
+struct Rooms* _loadRooms(int roomNumber, struct Buildings *currentBuilding) {
 
     struct Rooms* newRoom = (struct Rooms *) malloc(sizeof(struct Rooms));
 
@@ -768,10 +790,10 @@ struct Rooms* Load_room(int roomNumber, struct Buildings *currentBuilding) {
 /**
  * @date_added: 4/15
  * @return_type: Rooms Structure
- * @parameter: Accepts an INt, Buildings Structure
+ * @parameter: AprogCodeepts an INt, Buildings Structure
  * @description: returns a Rooms Structure selected by the user for purposes such as Printing, Updating, Deleting of Room
  */
-struct Rooms* Select_room(WINDOW *win,int height,int width,int roomNumber,struct Buildings* currentBuilding) {
+struct Rooms* _selectRoom(WINDOW *win,int height,int width,int roomNumber,struct Buildings* currentBuilding) {
     struct Rooms* current = currentBuilding->head;
     while (current != NULL) {
         if (current->roomNumber == roomNumber) { // if val of current->roomNumber is equal to current edi same room
@@ -793,10 +815,10 @@ struct Rooms* Select_room(WINDOW *win,int height,int width,int roomNumber,struct
 /**
  * @date_added: 4/16
  * @return_type: Buildings Structure
- * @parameter: Accepts an INt
- * @description: returns a Buildings Structure selected by the user to be able to access Rooms Objects of that Buildings Structure
+ * @parameter: AprogCodeepts an INt
+ * @description: returns a Buildings Structure selected by the user to be able to aprogCodeess Rooms Objects of that Buildings Structure
  */
-struct Buildings* Select_bldng(WINDOW *win,int height,int width,int bNum) {
+struct Buildings* _selectBuilding(WINDOW *win,int height,int width,int bNum) {
     struct Buildings* current = bHead;
     while (current != NULL) {
         if (current->buildingNumber == bNum) { // if val of current->roomNumber is equal to current edi same building
@@ -823,7 +845,7 @@ struct Buildings* Select_bldng(WINDOW *win,int height,int width,int bNum) {
  * @parameter: win, height, width, struct Buildings, struct Rooms, status
  * @description: Prints schedule to screen
  */
-void Print_sched(int height,int width,struct Buildings *building, struct Rooms* room,char status[]){
+void _printSched(int height,int width,struct Buildings *building, struct Rooms* room,char status[]){
     //Window size for schedule
     int sched_height=height/1.120;
     int sched_width=width-2;
@@ -868,10 +890,10 @@ void Print_sched(int height,int width,struct Buildings *building, struct Rooms* 
     //Print schedule within room
     for (int i = 0; i < room->scheduleCount; i++) {
             int day_len=strlen(room->schedules[i].day);
-            int cc_len=strlen(room->schedules[i].programCode);
+            int progCode_len=strlen(room->schedules[i].programCode);
             int time_len=strlen(room->schedules[i].time);
-            int total_len=day_len+cc_len+time_len;
-            mvwprintw(sched_win,6+i,(sched_width-strlen(sched_header[0]))/2,"%-23s%-29s%s",
+            int total_len=day_len+progCode_len+time_len;
+            mvwprintw(sched_win,6+i,(sched_width-strlen(sched_header[0]))/2,"%d.%-23s%-29s%s", i+1,
                room->schedules[i].day,
                room->schedules[i].programCode,
                room->schedules[i].time);
@@ -879,14 +901,144 @@ void Print_sched(int height,int width,struct Buildings *building, struct Rooms* 
     wrefresh(sched_win);
 }
 
+int editBuilding(WINDOW *win,int height,int width,struct Buildings *building) {
+    const char existed[] = "Building Number Already Existed!";
+    const char* lines[] = {"Building Number: ", "Max Rooms: "};
+    int n[] = {building->buildingNumber, building->maxRooms};
+
+    int len = strlen(lines[0]) + strlen(lines[1]);
+    // New Window
+    int _height=height/7;
+    int _width=(width-len)/2;
+
+    int _y=(height-_height)/2;
+    int _x=width-_width/2;
+    WINDOW* _sub_win=newwin(_height, _width, _y, _x);
+    if(!_sub_win) {
+        printf("Failed to load screen");
+        exit(1);
+    }
+
+    wborder(_sub_win,'|','|','-','-','+','+','+','+');
+
+    char cur_building_status[70];
+    int currentBuildingNumber = building->buildingNumber;
+    sprintf(cur_building_status, "Building: %d", currentBuildingNumber);
+    status_bar(_sub_win, cur_building_status);
+
+    for(int line=0; line<2;line++) {
+        char line_size[20];
+        sprintf(line_size, "%s%d", lines[line], n[line]);
+        mvwprintw(_sub_win,_height/2+line,(_width-len)/2,"%s", line_size);
+        wrefresh(_sub_win);
+    }
+    // Create a temp struct
+    struct Buildings* temp = building;
+
+    int option = _selectPromt(win, "What do you want to edit: [1]BuildingNumber, [2]MaxRooms, [3]All");
+    int newBuildingNumber, newMaxRooms;
+    struct Buildings *current = bHead; // will be used to traverse the linkedlist of Buildings structure
+    switch (option) {
+        case 1:   
+            newBuildingNumber = _selectPromt(win, "Enter New Building Number: ");
+            if(newBuildingNumber<1) return 0; // error negative value
+            if(newBuildingNumber == building->buildingNumber) {
+                int exitOrRetry=_selectPromt(win, "Building Number is the same with the current building [1] Exit, [2] Retry: ");
+                if(exitOrRetry == 1)
+                    return -1;
+                else
+                    editBuilding(win,height,width,building);
+            }
+            //TODO: check if existing na building number
+            while(current!=NULL) {
+                if(newBuildingNumber == current->buildingNumber) {
+                    wattrset(win,A_REVERSE);
+                    mvwprintw(win,height/2,(width-strlen(existed))/2,"%s",existed);
+                    wattrset(win,A_NORMAL);
+                    wrefresh(win);
+                    napms(2000);
+                    return -1;
+                }
+                current = current->next;
+            }
+            building->buildingNumber = newBuildingNumber;
+            updateListOfBuildings(temp);
+            break;
+        case 2:
+            newMaxRooms=_selectPromt(win, "Enter New Max Rooms: ");
+            if(newMaxRooms<1) return 0; // error
+            building->maxRooms = newMaxRooms;
+            break;
+        case 3:
+            newBuildingNumber = _selectPromt(win, "Enter New Building Number: ");
+
+            if(newBuildingNumber<1) return 0; // error negative value
+            if(newBuildingNumber == building->buildingNumber) {
+                int exitOrRetry=_selectPromt(win, "Building Number is the same with the current building [1] Exit, [2] Retry: ");
+
+                if(exitOrRetry == 1)
+                    return -1;
+                else
+                    editBuilding(win,height,width,building);
+            }
+            //TODO: check if existing na building number
+            while(current!=NULL) {
+                if(newBuildingNumber == current->buildingNumber) {
+                    wattrset(win,A_REVERSE);
+                    mvwprintw(win,height/2,(width-strlen(existed))/2,"%s",existed);
+                    wattrset(win,A_NORMAL);
+                    wrefresh(win);
+                }
+                current = current->next;
+            }
+            building->buildingNumber = newBuildingNumber;
+
+            newMaxRooms=_selectPromt(win, "Enter New Max Rooms: ");
+
+            if(newMaxRooms<1) return 0; // error
+            building->maxRooms = newMaxRooms;
+            updateListOfBuildings(temp);
+            break;
+        default:
+            printf("Invalid");
+    }
+
+    free(temp);
+}
+
+void updateListOfBuildings(struct Buildings* building) {
+    int currentBuildingNumber = building->buildingNumber;
+    char PATH[100] = "./buildings/current_changes/bld";
+    sprintf(PATH, "%s%d.txt", PATH, currentBuildingNumber);
+
+    FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
+    if(outFile == NULL) {
+        printf("Error reopening file for writing\n");
+        exit(1);
+    }
+
+    struct Buildings* current = bHead;
+    while(current != NULL) {
+        fprintf(outFile, "bld%d.txt\n", current->buildingNumber);
+        current = current->next;
+    }
+
+    fclose(outFile);
+
+    if (remove(PATH) == 0)
+        printf("File deleted suprogCodeessfully.\n");
+    else
+        printf("Unable to delete the file.\n");
+}
+
 /**
  * @date_added: 4/15
  * @return_type: void
- * @parameter: Accepts Buildings Structure, And Rooms Structure
+ * @parameter: AprogCodeepts Buildings Structure, And Rooms Structure
  * @description: The Structure Arguments are the structures acquired from the selectBuilding and selectRoom functions, the printSelectedRoom
  * function prints the data contents of an specific room.
  */
-void Print_sched_changes(WINDOW *win,int height,int width,struct Buildings *building, struct Rooms* room) {
+void _printSched_changes(WINDOW *win,int height,int width,struct Buildings *building, struct Rooms* room) {
     int currentRoomNumber = room->roomNumber;
     int currentBuildingNumber = building->buildingNumber;
 
@@ -932,9 +1084,9 @@ void Print_sched_changes(WINDOW *win,int height,int width,struct Buildings *buil
 
     for (int i = 0; i < room->scheduleCount; i++) {
         int day_len=strlen(room->schedules[i].day);
-        int cc_len=strlen(room->schedules[i].programCode);
+        int progCode_len=strlen(room->schedules[i].programCode);
         int time_len=strlen(room->schedules[i].time);
-        int total_len=day_len+cc_len+time_len;
+        int total_len=day_len+progCode_len+time_len;
         mvwprintw(cur_sched,6+i,(sched_width-strlen(sched_header[0]))/2,"%-10s%-23s%s",
            room->schedules[i].day,
            room->schedules[i].programCode,
@@ -996,8 +1148,74 @@ void Print_sched_changes(WINDOW *win,int height,int width,struct Buildings *buil
     delwin(last_sched);
 }
 
+void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
+    int rowToEdit=_selectPromt(win, "Select Row to Edit: ");
+
+    struct Schedule *current = &room->schedules[rowToEdit];
+    char* roomDay = current->day;
+    char* progCode = current->programCode;
+    char* roomTime = current->time;
+
+    int len = strlen(roomDay) + strlen(progCode) + strlen(roomTime);
+    // New Window
+    int _height=height/10;
+    int _width=(width-len)/3;
+
+    int _y=(height)/2;
+    int _x=width-_width/2;
+    WINDOW* _sub_win=newwin(_height, _width, _y, _x);
+    if(!_sub_win) {
+        printf("Failed to load screen");
+        exit(1);
+    }
+
+    wborder(_sub_win,'|','|','-','-','+','+','+','+');
+
+    char cur_room_status[70];
+    int currentRoomNumber = room->roomNumber;
+    sprintf(cur_room_status, "Room: %d", currentRoomNumber);
+    status_bar(_sub_win, cur_room_status);
+
+    mvwprintw(_sub_win,_height/2,(_width-len)/2,"%s %s %s",roomDay, progCode, roomTime);
+    wrefresh(_sub_win);
+    // wattrset(win,A_REVERSE);
+    // mvwprintw(win,height/2,(width-len)/2,"%s %s %s",roomDay, progCode, roomTime);
+    // wattrset(win,A_NORMAL);
+    // wrefresh(win);
+
+    printf("%s, %s, %s\n", current->day, current->programCode, current->time);
+    int option=_selectPromt(win, "What do you want to edit: [1] Day, [2] Course Code, [3] Time, [4] All");
+    printf("%d", option);
+    if(option == -1) return;
+    if(option < 1) option = 1;
+    else if(option > 4) option = 4;
+    char* day, *programCode, *time;
+    switch(option) {
+        case 1:
+            day=_strSelectPromt(win, "Enter Day: ");
+            break;
+        case 2:
+            programCode=_strSelectPromt(win, "Enter Program Code: ");
+            break;
+        case 3:
+            time=_strSelectPromt(win, "Enter Time: ");
+            break;
+        case 4:
+            day=_strSelectPromt(win, "Enter Day: ");
+            programCode=_strSelectPromt(win, "Enter Course Code: ");
+            time=_strSelectPromt(win, "Enter Time: ");
+    }
+
+    strcpy(current->day, day);
+    strcpy(current->programCode, programCode);
+    strcpy(current->time, time);
+    free(day);
+    free(programCode);
+    free(time);
+}
+
 // Save updated version
-void Save_cur_changes(struct Buildings *current) {
+void _saveCurrentChanges(struct Buildings *current) {
     FILE* savePTR;
     char strBuildingNumber[5];
     sprintf(strBuildingNumber, "%d", current->buildingNumber);
@@ -1034,7 +1252,7 @@ void Save_cur_changes(struct Buildings *current) {
     fclose(savePTR);
 }
 
-void Save_last_changes(struct Buildings *current) {
+void _saveLastChanges(struct Buildings *current) {
     FILE* changesPTR;
     char strBuildingNumber[5];
     int buildingNumber = current->buildingNumber;
@@ -1073,11 +1291,11 @@ void Save_last_changes(struct Buildings *current) {
     fclose(changesPTR);
 }
 
-void Revert_changes(struct Buildings *current) {
+void _revertChanges(struct Buildings *current) {
     if (!current) return;
 
     // Save current state as last changes first (so we can undo the revert if needed)
-    Save_last_changes(current);
+    _saveLastChanges(current);
 
     char strBuildingNumber[5];
     int buildingNumber = current->buildingNumber;
@@ -1117,7 +1335,7 @@ void Revert_changes(struct Buildings *current) {
         if (strstr(line, "Room:")) {
             int currentRoom = 0;
             sscanf(line, "Room: %d", &currentRoom);
-            currentRm = Load_room(currentRoom, current);
+            currentRm = _loadRooms(currentRoom, current);
             continue;
         }
 
@@ -1128,7 +1346,7 @@ void Revert_changes(struct Buildings *current) {
         if (sscanf(line, "%d, %20[^,], %20[^\n]", &dayIndex, courseCode, time) == 3) {
             if (currentRm) {
                 if (currentRm->scheduleCount < MAX_SCHEDULES) {
-                    Load_sched(currentRm, dayIndex, courseCode, time);
+                    _loadSchedules(currentRm, dayIndex, courseCode, time);
                 }
             }
         }
@@ -1139,15 +1357,15 @@ void Revert_changes(struct Buildings *current) {
     // Sort schedules after loading
     struct Rooms *rm = current->head;
     while (rm != NULL) {
-        Sort_sched(rm);
+        _sortSchedules(rm);
         rm = rm->next;
     }
 
     // Save the reverted state as current
-    Save_cur_changes(current);
+    _saveCurrentChanges(current);
 }
 
-int Add_room(WINDOW *win, int height, int width, struct Buildings *building) {
+int _addRoom(WINDOW *win, int height, int width, struct Buildings *building) {
     if (!building) {
         return -1;
     }
@@ -1171,7 +1389,7 @@ int Add_room(WINDOW *win, int height, int width, struct Buildings *building) {
     }
 
     // Get room number from user
-    int roomNumber = Select_prompt(win, "Input Room Number: ");
+    int roomNumber = _selectPromt(win, "Input Room Number: ");
     if (roomNumber < 1) {
         return -1;
     }
@@ -1238,11 +1456,11 @@ int Add_room(WINDOW *win, int height, int width, struct Buildings *building) {
         currentRoom->next = newRoom;
     }
 
-    Save_cur_changes(building);
-    return 0; // Changed from -1 to 0 to indicate success
+    _saveCurrentChanges(building);
+    return 0; // Changed from -1 to 0 to indicate suprogCodeess
 }
 int Add_building(WINDOW *win,int height,int width) {
-    int buildingNumber=Select_prompt(win,"Input Building Number: ");
+    int buildingNumber=_selectPromt(win,"Input Building Number: ");
 
     if(buildingNumber < 1){
         return -1;
@@ -1261,7 +1479,7 @@ int Add_building(WINDOW *win,int height,int width) {
         current = current->next;
     }
     
-    int maxRooms=Select_prompt(win,"Input Max Room: ");
+    int maxRooms=_selectPromt(win,"Input Max Room: ");
     if(maxRooms < 1) {
         return -1;
     }
@@ -1339,7 +1557,7 @@ int Add_building(WINDOW *win,int height,int width) {
         }
     }
 
-    Save_last_changes(newBuilding);
+    _saveLastChanges(newBuilding);
 
     char bldFile[50];
     sprintf(bldFile, "./buildings/current_changes/bld%d.txt", buildingNumber);
@@ -1372,7 +1590,7 @@ int Add_building(WINDOW *win,int height,int width) {
         current = current->next;
     }
 
-    Save_cur_changes(newBuilding);
+    _saveCurrentChanges(newBuilding);
 
     fclose(outFile);
     fclose(listOfBuildingsPtr);
@@ -1380,7 +1598,7 @@ int Add_building(WINDOW *win,int height,int width) {
 }
 
 //  show aba
-void Del_roomsched(WINDOW *win,int height,int width,struct Rooms *room) {
+void _deleteRoomsched(WINDOW *win,int height,int width,struct Rooms *room) {
     if (!room || room->scheduleCount == 0) {
         const char no_sched[] = "No schedules to delete";
         wattrset(win, A_REVERSE);
@@ -1392,7 +1610,7 @@ void Del_roomsched(WINDOW *win,int height,int width,struct Rooms *room) {
     }
 
     // Get user input for which schedule to delete
-    int rowToDelete = Select_prompt(win, "Enter schedule row to delete (0 to cancel): ");
+    int rowToDelete = _selectPromt(win, "Enter schedule row to delete (0 to cancel): ");
     if (rowToDelete <= 0 || rowToDelete > room->scheduleCount) {
         return; // Invalid input or cancelled
     }
@@ -1406,28 +1624,28 @@ void Del_roomsched(WINDOW *win,int height,int width,struct Rooms *room) {
     struct Buildings* building = bHead;
     while (building != NULL) {
         if (building->head == room || building->last == room) {
-            Save_last_changes(building);
-            Save_cur_changes(building);
+            _saveLastChanges(building);
+            _saveCurrentChanges(building);
             break;
         }
         building = building->next;
     }
 
-    // Show success message
-    const char success[] = "Schedule deleted";
+    // Show suprogCodeess message
+    const char suprogCodeess[] = "Schedule deleted";
     wattrset(win, A_REVERSE);
-    mvwprintw(win, height/2, (width-strlen(success))/2, "%s", success);
+    mvwprintw(win, height/2, (width-strlen(suprogCodeess))/2, "%s", suprogCodeess);
     wattrset(win, A_NORMAL);
     wrefresh(win);
     napms(1000);
 }
 
-void Del_room(struct Buildings* currBuilding,int roomToDelete) {
+void _deleteRoom(struct Buildings* currBuilding,int roomToDelete) {
     if (!currBuilding || !currBuilding->head) {
         return; // No building or no rooms to delete
     }
 
-    Save_last_changes(currBuilding);
+    _saveLastChanges(currBuilding);
     struct Rooms* currRoom = currBuilding->head;
     struct Rooms* toDelete;
 
@@ -1454,8 +1672,8 @@ void Del_room(struct Buildings* currBuilding,int roomToDelete) {
     free(toDelete);
 }
 
-void Del_bldng(struct Buildings* currBuilding, int buildingToDelete) {
-    Save_last_changes(currBuilding);
+void _deleteBuilding(struct Buildings* currBuilding, int buildingToDelete) {
+    _saveLastChanges(currBuilding);
     struct Buildings* toDelete = NULL;
     
     // Find the building to delete
@@ -1510,7 +1728,7 @@ void Del_bldng(struct Buildings* currBuilding, int buildingToDelete) {
         current = current->next;
     }
 
-    Save_cur_changes(currBuilding);
+    _saveCurrentChanges(currBuilding);
     fclose(listFile);
 }
 
@@ -1521,7 +1739,7 @@ void Up2low(char word[10]) {
     }
 }
 
-int Add_roomsched(WINDOW *win, int height, int width, struct Rooms* room) {
+int _addRoomsched(WINDOW *win, int height, int width, struct Rooms* room) {
     if (room->scheduleCount == MAX_SCHEDULES) {
         const char max_sched[] = "Maximum schedule reached for this room";
         wattrset(win, A_REVERSE);
@@ -1532,20 +1750,87 @@ int Add_roomsched(WINDOW *win, int height, int width, struct Rooms* room) {
         return -1;
     }
 
-    // Get day
-    char* day = Str_select_prompt(win, "Enter day: ");
-    if (!day) return -1;
+// Get day
+char* day = _strSelectPromt(win, "Enter day: ");
+if (!day) return -1;
 
-    int valid_day = 0;
-    for (int i = 0; i < MAX_DAYS; i++) {
-        if (strcasecmp(WEEK[i], day) == 0) {
-            valid_day = 1;
-            break;
-        }
+int valid_day = 0;
+for (int i = 0; i < MAX_DAYS; i++) {
+    if (strcasecmp(WEEK[i], day) == 0) {
+        valid_day = 1;
+        break;
     }
+}
 
-    if (!valid_day) {
-        const char msg[] = "Invalid day input";
+if (!valid_day) {
+    const char msg[] = "Invalid day input";
+    wattrset(win, A_REVERSE);
+    mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+    wattrset(win, A_NORMAL);
+    wrefresh(win);
+    napms(2000);
+    free(day);
+    return -1;
+}
+
+// Get course code
+char* progCode = _strSelectPromt(win, "Enter Course Code (e.g., it1a, cs1a): ");
+if (!progCode) {
+    free(day);
+    return -1;
+}
+
+char programCode[15];
+strncpy(programCode, progCode, sizeof(programCode) - 1);
+programCode[sizeof(programCode) - 1] = '\0';
+free(progCode);
+Up2low(programCode);
+
+// Get time
+char* tm = _strSelectPromt(win, "Enter Time (e.g., 7am-9am): ");
+if (!tm) {
+    free(day);
+    return -1;
+}
+
+char time[15];
+strncpy(time, tm, sizeof(time) - 1);
+time[sizeof(time) - 1] = '\0';
+free(tm);
+Up2low(time);
+
+// Validate time format
+char firstHalf[10], secondHalf[10];
+if (sscanf(time, "%9[^-]-%9s", firstHalf, secondHalf) != 2) {
+    const char msg[] = "Invalid time format (use 7am-9am or 7:00am-9:00am)";
+    wattrset(win, A_REVERSE);
+    mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+    wattrset(win, A_NORMAL);
+    wrefresh(win);
+    napms(2000);
+    free(day);
+    return -1;
+}
+
+// Validate time strings contain only digits, optional colon, and am/pm
+if (!is_valid_time_string(firstHalf) || !is_valid_time_string(secondHalf)) {
+    const char msg[] = "Invalid time format (e.g., 7am, 7:30pm)";
+    wattrset(win, A_REVERSE);
+    mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+    wattrset(win, A_NORMAL);
+    wrefresh(win);
+    napms(2000);
+    free(day);
+    return -1;
+}
+
+int firstHalfInt, secondHalfInt;
+int firstHalfMin = 0, secondHalfMin = 0;
+
+// Parse first half
+if (strstr(firstHalf, ":")) {
+    if (sscanf(firstHalf, "%d:%d", &firstHalfInt, &firstHalfMin) != 2) {
+        const char msg[] = "Invalid time format (e.g., 7:30am)";
         wattrset(win, A_REVERSE);
         mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
         wattrset(win, A_NORMAL);
@@ -1554,37 +1839,9 @@ int Add_roomsched(WINDOW *win, int height, int width, struct Rooms* room) {
         free(day);
         return -1;
     }
-
-    // Get course code
-    char* cc = Str_select_prompt(win, "Enter Course Code (e.g., it1a, cs1a): ");
-    if (!cc) {
-        free(day);
-        return -1;
-    }
-
-    char coursecode[15];
-    strncpy(coursecode, cc, sizeof(coursecode) - 1);
-    coursecode[sizeof(coursecode) - 1] = '\0';
-    free(cc);
-    Up2low(coursecode);
-
-    // Get time
-    char* tm = Str_select_prompt(win, "Enter Time (e.g., 7am-9am): ");
-    if (!tm) {
-        free(day);
-        return -1;
-    }
-
-    char time[15];
-    strncpy(time, tm, sizeof(time) - 1);
-    time[sizeof(time) - 1] = '\0';
-    free(tm);
-    Up2low(time);
-
-    // Parse time format
-    char startStr[20], endStr[20];
-    if (sscanf(time, "%19[^-]-%19s", startStr, endStr) != 2) {
-        const char msg[] = "Invalid time format (use 7am-9am or 7:00am-9:00am)";
+} else {
+    if (sscanf(firstHalf, "%d", &firstHalfInt) != 1) {
+        const char msg[] = "Invalid time format (e.g., 7am)";
         wattrset(win, A_REVERSE);
         mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
         wattrset(win, A_NORMAL);
@@ -1593,39 +1850,81 @@ int Add_roomsched(WINDOW *win, int height, int width, struct Rooms* room) {
         free(day);
         return -1;
     }
+}
 
-    int h1 = 0, m1 = 0, h2 = 0, m2 = 0;
-    char p1[3] = "", p2[3] = "";
-
-    if (!(sscanf(startStr, "%d:%d%2s", &h1, &m1, p1) == 3 ||
-          sscanf(startStr, "%d%2s", &h1, p1) == 2)) {
+// Parse second half
+if (strstr(secondHalf, ":")) {
+    if (sscanf(secondHalf, "%d:%d", &secondHalfInt, &secondHalfMin) != 2) {
+        const char msg[] = "Invalid time format (e.g., 7:30am)";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
         free(day);
         return -1;
     }
-
-    if (!(sscanf(endStr, "%d:%d%2s", &h2, &m2, p2) == 3 ||
-          sscanf(endStr, "%d%2s", &h2, p2) == 2)) {
+} else {
+    if (sscanf(secondHalf, "%d", &secondHalfInt) != 1) {
+        const char msg[] = "Invalid time format (e.g., 7am)";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
         free(day);
         return -1;
     }
+}
 
-    if (h1 < 1 || h1 > 12 || h2 < 1 || h2 > 12 ||
-        m1 < 0 || m1 > 59 || m2 < 0 || m2 > 59 ||
-        (strcasecmp(p1, "am") != 0 && strcasecmp(p1, "pm") != 0) ||
-        (strcasecmp(p2, "am") != 0 && strcasecmp(p2, "pm") != 0)) {
+// Get AM/PM indicators
+int isFAM = (firstHalf[strlen(firstHalf) - 2] == 'a') ? 1 : 0;
+int isSAM = (secondHalf[strlen(secondHalf) - 2] == 'a') ? 1 : 0;
+
+// Validate minutes
+if (firstHalfMin < 0 || firstHalfMin > 59 || secondHalfMin < 0 || secondHalfMin > 59) {
+    const char msg[] = "Invalid minutes (must be 00-59)";
+    wattrset(win, A_REVERSE);
+    mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+    wattrset(win, A_NORMAL);
+    wrefresh(win);
+    napms(2000);
+    free(day);
+    return -1;
+}
+
+// Validate AM times (6am-11:59am)
+if (isFAM) {
+    if (firstHalfInt < 6 || firstHalfInt > 11 || (firstHalfInt == 11 && firstHalfMin > 59)) {
+        const char msg[] = "AM classes must be between 6am-11:59am";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
         free(day);
         return -1;
     }
+}
 
-    if (strcasecmp(p1, "pm") == 0 && h1 != 12) h1 += 12;
-    if (strcasecmp(p1, "am") == 0 && h1 == 12) h1 = 0;
-    if (strcasecmp(p2, "pm") == 0 && h2 != 12) h2 += 12;
-    if (strcasecmp(p2, "am") == 0 && h2 == 12) h2 = 0;
+// Validate PM times (1pm-9pm)
+if (!isFAM) {
+    if (firstHalfInt < 1 || firstHalfInt > 9 || (firstHalfInt == 9 && firstHalfMin > 0)) {
+        const char msg[] = "PM classes must be between 1pm-9pm";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+}
 
-    int startMin = h1 * 60 + m1;
-    int endMin = h2 * 60 + m2;
-
-    if (startMin >= endMin) {
+// Validate end time is after start time
+if (isFAM && isSAM) {
+    if (secondHalfInt < firstHalfInt || 
+        (secondHalfInt == firstHalfInt && secondHalfMin <= firstHalfMin)) {
         const char msg[] = "End time must be after start time";
         wattrset(win, A_REVERSE);
         mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
@@ -1635,31 +1934,95 @@ int Add_roomsched(WINDOW *win, int height, int width, struct Rooms* room) {
         free(day);
         return -1;
     }
+    if (secondHalfInt == 12) {
+        const char msg[] = "Invalid end time (12am is not allowed)";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+} else if (!isFAM && !isSAM) {
+    if (secondHalfInt < firstHalfInt || 
+        (secondHalfInt == firstHalfInt && secondHalfMin <= firstHalfMin)) {
+        const char msg[] = "End time must be after start time";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+    if (secondHalfInt == 12) {
+        const char msg[] = "Invalid end time (12pm is not allowed)";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+} else {
+    // Mixed AM/PM (e.g., 11am-1pm)
+    if (!(isFAM && !isSAM)) {
+        const char msg[] = "Invalid time range (must be within AM or PM)";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+}
 
-    // Conflict check
-    for (int i = 0; i < room->scheduleCount; i++) {
-        if (strcasecmp(room->schedules[i].day, day) != 0) continue;
-
-        char estart[20], eend[20], ep1[3] = "", ep2[3] = "";
-        int eh1 = 0, em1 = 0, eh2 = 0, em2 = 0;
-        sscanf(room->schedules[i].time, "%19[^-]-%19s", estart, eend);
-        sscanf(estart, "%d:%d%2s", &eh1, &em1, ep1) == 3 ||
-        sscanf(estart, "%d%2s", &eh1, ep1) == 2;
-        sscanf(eend, "%d:%d%2s", &eh2, &em2, ep2) == 3 ||
-        sscanf(eend, "%d%2s", &eh2, ep2) == 2;
-
-        if (strcasecmp(ep1, "pm") == 0 && eh1 != 12) eh1 += 12;
-        if (strcasecmp(ep1, "am") == 0 && eh1 == 12) eh1 = 0;
-        if (strcasecmp(ep2, "pm") == 0 && eh2 != 12) eh2 += 12;
-        if (strcasecmp(ep2, "am") == 0 && eh2 == 12) eh2 = 0;
-
-        int estartMin = eh1 * 60 + em1;
-        int eendMin = eh2 * 60 + em2;
-
-        if ((startMin < eendMin && endMin > estartMin)) {
-            const char conflict[] = "Schedule conflict detected";
+// Check for schedule conflicts
+for (int index = 0; index < room->scheduleCount; index++) {
+    if (strcmp(room->schedules[index].day, day) == 0) {
+        int schedFirstHalf, schedSecHalf, schedSecHalfMin;
+        char schedFirstHalfStr[10], schedSecondHalfStr[10];
+        char schedFirstHalfPeriod[3], schedSecondHalfPeriod[3];
+        
+        // Parse existing schedule time
+        if (sscanf(room->schedules[index].time, "%9[^-]-%9s", schedFirstHalfStr, schedSecondHalfStr) != 2) {
+            continue; // skip invalid entries
+        }
+        
+        // Parse first half of existing schedule
+        if (strstr(schedFirstHalfStr, ":")) {
+            sscanf(schedFirstHalfStr, "%d:%d%2s", &schedFirstHalf, &schedSecHalfMin, schedFirstHalfPeriod);
+        } else {
+            sscanf(schedFirstHalfStr, "%d%2s", &schedFirstHalf, schedFirstHalfPeriod);
+            schedSecHalfMin = 0;
+        }
+        
+        // Parse second half of existing schedule
+        if (strstr(schedSecondHalfStr, ":")) {
+            sscanf(schedSecondHalfStr, "%d:%d%2s", &schedSecHalf, &schedSecHalfMin, schedSecondHalfPeriod);
+        } else {
+            sscanf(schedSecondHalfStr, "%d%2s", &schedSecHalf, schedSecondHalfPeriod);
+            schedSecHalfMin = 0;
+        }
+        
+        // Convert all times to minutes since midnight for easier comparison
+        int newStart = convertToMinutes(firstHalfInt, firstHalfMin, isFAM);
+        int newEnd = convertToMinutes(secondHalfInt, secondHalfMin, isSAM);
+        int existingStart = convertToMinutes(schedFirstHalf, schedSecHalfMin, 
+                                          (schedFirstHalfPeriod[0] == 'a') ? 1 : 0);
+        int existingEnd = convertToMinutes(schedSecHalf, schedSecHalfMin, 
+                                         (schedSecondHalfPeriod[0] == 'a') ? 1 : 0);
+        
+        // Check for overlap
+        if ((newStart >= existingStart && newStart < existingEnd) ||
+            (newEnd > existingStart && newEnd <= existingEnd) ||
+            (newStart <= existingStart && newEnd >= existingEnd)) {
+            const char msg[] = "Schedule conflict with existing booking";
             wattrset(win, A_REVERSE);
-            mvwprintw(win, height / 2, (width - strlen(conflict)) / 2, "%s", conflict);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
             wattrset(win, A_NORMAL);
             wrefresh(win);
             napms(2000);
@@ -1667,18 +2030,27 @@ int Add_roomsched(WINDOW *win, int height, int width, struct Rooms* room) {
             return -1;
         }
     }
+}
 
-    // Add the schedule
-    struct Schedule* sched = &room->schedules[room->scheduleCount++];
-    strncpy(sched->day, day, sizeof(sched->day) - 1);
-    strncpy(sched->programCode, coursecode, sizeof(sched->programCode) - 1);
-    strncpy(sched->time, time, sizeof(sched->time) - 1);
+// Store new schedule data
+struct Schedule *sched = &room->schedules[room->scheduleCount++];
+strcpy(sched->day, day);
+strcpy(sched->programCode, programCode);
+strcpy(sched->time, time);
+
+for (int i = 0; i < room->scheduleCount; i++) {
+    printf("%d.  %s, %s at %s\n",
+           i,
+           room->schedules[i].day,
+           room->schedules[i].programCode,
+           room->schedules[i].time);
+}
 
     struct Buildings* building = bHead;
     while (building != NULL) {
         if (building->head == room || building->last == room) {
-            Save_last_changes(building);
-            Save_cur_changes(building);
+            _saveLastChanges(building);
+            _saveCurrentChanges(building);
             break;
         }
         building = building->next;
@@ -1688,9 +2060,39 @@ int Add_roomsched(WINDOW *win, int height, int width, struct Rooms* room) {
     return 0;
 }
 
+int is_valid_time_string(const char *str) {
+    int len = strlen(str);
+    if (len < 2) return 0; // At least "1a" or "1p"
+    
+    // Check last two characters are am/pm
+    char period = str[len-1];
+    if (period != 'm' && period != 'M') return 0;
+    char ampm = str[len-2];
+    if (ampm != 'a' && ampm != 'A' && ampm != 'p' && ampm != 'P') return 0;
+    
+    // Check the rest are digits or colon
+    for (int i = 0; i < len-2; i++) {
+        if (!isdigit(str[i]) && str[i] != ':') return 0;
+    }
+    
+    // Check there's at most one colon
+    if (strchr(str, ':') != strrchr(str, ':')) return 0;
+    
+    return 1;
+}
+
+int convertToMinutes(int hour, int minute, int isAM) {
+    if (hour == 12) {
+        hour = isAM ? 0 : 12; // 12am is 0, 12pm is 12
+    } else {
+        hour = isAM ? hour : hour + 12;
+    }
+    return hour * 60 + minute;
+}
+
 
 // Sort Schedules using the bubble sort Algo
-void Sort_sched(struct Rooms* room) {
+void _sortSchedules(struct Rooms* room) {
     // Sort schedules per day using bubble sort
     for (int i = 0; i < room->scheduleCount - 1; i++) {
         for (int k = 0; k < room->scheduleCount - i - 1; k++) {
