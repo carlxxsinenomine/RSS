@@ -1898,34 +1898,6 @@ int _addRoomsched(WINDOW *win, int height, int width, struct Rooms* room) {
         return -1;
     }
 
-    // Validate AM times (6am-11:59am)
-    if (isFAM) {
-        if (firstHalfInt < 6 || firstHalfInt > 11 || (firstHalfInt == 11 && firstHalfMin > 59)) {
-            const char msg[] = "AM classes must be between 6am-11:59am";
-            wattrset(win, A_REVERSE);
-            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-            wattrset(win, A_NORMAL);
-            wrefresh(win);
-            napms(2000);
-            free(day);
-            return -1;
-        }
-    }
-
-    // Validate PM times (1pm-9pm)
-    if (!isFAM) {
-        if (firstHalfInt < 1 || firstHalfInt > 9 || (firstHalfInt == 9 && firstHalfMin > 0)) {
-            const char msg[] = "PM classes must be between 1pm-9pm";
-            wattrset(win, A_REVERSE);
-            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-            wattrset(win, A_NORMAL);
-            wrefresh(win);
-            napms(2000);
-            free(day);
-            return -1;
-        }
-    }
-
     // Validate end time is after start time
     if (isFAM && isSAM) {
         if (secondHalfInt < firstHalfInt || 
@@ -1939,31 +1911,11 @@ int _addRoomsched(WINDOW *win, int height, int width, struct Rooms* room) {
             free(day);
             return -1;
         }
-        if (secondHalfInt == 12) {
-            const char msg[] = "Invalid end time (12am is not allowed)";
-            wattrset(win, A_REVERSE);
-            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-            wattrset(win, A_NORMAL);
-            wrefresh(win);
-            napms(2000);
-            free(day);
-            return -1;
-        }
     }
     else if (!isFAM && !isSAM) {
         if (secondHalfInt < firstHalfInt || 
             (secondHalfInt == firstHalfInt && secondHalfMin <= firstHalfMin)) {
             const char msg[] = "End time must be after start time";
-            wattrset(win, A_REVERSE);
-            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-            wattrset(win, A_NORMAL);
-            wrefresh(win);
-            napms(2000);
-            free(day);
-            return -1;
-        }
-        if (secondHalfInt == 12) {
-            const char msg[] = "Invalid end time (12pm is not allowed)";
             wattrset(win, A_REVERSE);
             mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
             wattrset(win, A_NORMAL);
@@ -2018,10 +1970,8 @@ int _addRoomsched(WINDOW *win, int height, int width, struct Rooms* room) {
             // Convert all times to minutes since midnight for easier comparison
             int newStart = convertToMinutes(firstHalfInt, firstHalfMin, isFAM);
             int newEnd = convertToMinutes(secondHalfInt, secondHalfMin, isSAM);
-            int existingStart = convertToMinutes(schedFirstHalf, schedSecHalfMin, 
-                                              (schedFirstHalfPeriod[0] == 'a') ? 1 : 0);
-            int existingEnd = convertToMinutes(schedSecHalf, schedSecHalfMin, 
-                                             (schedSecondHalfPeriod[0] == 'a') ? 1 : 0);
+            int existingStart = convertToMinutes(schedFirstHalf, schedSecHalfMin, (schedFirstHalfPeriod[0] == 'a') ? 1 : 0);
+            int existingEnd = convertToMinutes(schedSecHalf, schedSecHalfMin, (schedSecondHalfPeriod[0] == 'a') ? 1 : 0);
             
             // Check for overlap
             if ((newStart >= existingStart && newStart < existingEnd) ||
