@@ -297,13 +297,6 @@ void admin_scr(void){
                     delwin(win);
                     continue;
                 }
-
-                // if (toupper(input) == ('X')) {
-                //     flag=-1;
-                //     freeAllLists();
-                //     delwin(win);
-                //     continue;
-                // }
         }
         else if(flag==1){
             wclear(win);
@@ -363,12 +356,7 @@ void admin_scr(void){
                     flag=0;
                     selectedBuilding=NULL;
                     break;
-                }
-                // if (toupper(input) == ('X')) {
-                //     flag = 0;
-                //     break;
-                // }
-                
+                }                
         }
         else if(flag==2) {
             int Select_sched_nav=0;
@@ -434,10 +422,6 @@ void admin_scr(void){
                     selectedRoom=NULL;
                     break;
                 }
-                // if (toupper(input) == ('X')) {
-                //     flag = 1;
-                //     break;
-                // }
             }
             wrefresh(win);
             check_winsize(win, height, window_width);
@@ -903,7 +887,6 @@ void _printSched(int height,int width,struct Buildings *building, struct Rooms* 
                room->schedules[i].time);
     }
     wrefresh(sched_win);
-    wgetch(sched_win);
 }
 
 /*
@@ -1199,7 +1182,6 @@ int editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
 
     //printf("%s, %s, %s\n", current->day, current->programCode, current->time);
     int option=_selectPromt(win, "What do you want to edit: [1] Day, [2] Course Code, [3] Time, [4] All: ");
-    printf("%d", option);
     if(option == -1) return -1;
     if(option < 1) option = 1;
     else if(option > 4) option = 4;
@@ -1207,26 +1189,31 @@ int editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
     switch(option) {
         case 1:
             day=_strSelectPromt(win, "Enter Day: ");
+            strcpy(current->day, day);
+            free(day);
             break;
         case 2:
             programCode=_strSelectPromt(win, "Enter Program Code: ");
+            strcpy(current->programCode, programCode);
+            free(programCode);
             break;
         case 3:
             time=_strSelectPromt(win, "Enter Time: ");
+            strcpy(current->time, time);
+            free(time);
             break;
         case 4:
             day=_strSelectPromt(win, "Enter Day: ");
             programCode=_strSelectPromt(win, "Enter Course Code: ");
             time=_strSelectPromt(win, "Enter Time: ");
+            strcpy(current->day, day);
+            strcpy(current->programCode, programCode);
+            strcpy(current->time, time);
+            free(day);
+            free(programCode);
+            free(time);
             break;
     }
-
-    strcpy(current->day, day);
-    strcpy(current->programCode, programCode);
-    strcpy(current->time, time);
-    free(day);
-    free(programCode);
-    free(time);
 }
 
 // Save updated version
