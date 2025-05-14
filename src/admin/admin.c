@@ -1213,9 +1213,9 @@ void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
             programCode=_strSelectPromt(win, "Enter Course Code: ");
             time=_strSelectPromt(win, "Enter Time: ");
             break;
-        case -1:
+        if(day==NULL||programCode==NULL||time==NULL){
             return;
-            break;
+        }
     }
 
     strcpy(current->day, day);
