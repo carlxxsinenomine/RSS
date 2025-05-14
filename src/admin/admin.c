@@ -59,7 +59,7 @@ void _sortSchedules(struct Rooms* room);
 void _revertChanges(struct Buildings *current);
 void freeAllLists();
 int editBuilding(WINDOW *win,int height,int width,struct Buildings *building);
-void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room);
+int editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room);
 void updateListOfBuildings(struct Buildings* building);
 int is_valid_time_string(const char *str);
 int convertToMinutes(int hour, int minute, int isAM);
@@ -397,12 +397,12 @@ void admin_scr(void){
                 case '1':
                     _printSched(height, window_width, selectedBuilding, selectedRoom, "Add Sched: ");
                     int addRoomSched = _addRoomsched(win, height, window_width, selectedRoom);
-                    // if (addRoomSched == -1)
-                    // {
-                    //     flag = 2;
-                    //     continue;
-                    // }
-                    // flag = 1;
+                    if (addRoomSched == -1)
+                    {
+                        flag = 2;
+                        continue;
+                    }
+                     flag = 1;
                     flag=2;
                     break;
                 case '2':
@@ -422,7 +422,9 @@ void admin_scr(void){
                 case '5':
                     _printSched(height, window_width, selectedBuilding, selectedRoom, "Edit Sched");
                     _saveLastChanges(selectedBuilding);
-                    editRoomSchedule(win, height, window_width, selectedRoom);
+                    if(editRoomSchedule(win, height, window_width, selectedRoom)==-1){
+                        break;
+                    }
                     _saveCurrentChanges(selectedBuilding);
                     flag = 2;
                     break;
@@ -901,6 +903,7 @@ void _printSched(int height,int width,struct Buildings *building, struct Rooms* 
                room->schedules[i].time);
     }
     wrefresh(sched_win);
+    wgetch(sched_win);
 }
 
 /*
@@ -1152,12 +1155,15 @@ void _printSched_changes(WINDOW *win,int height,int width,struct Buildings *buil
     delwin(last_sched);
 }
 
-void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
+int editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
     int rowToEdit=_selectPromt(win, "Select Row to Edit: ");
 
     if(rowToEdit==-1){
-        return;
+        return -1;
     }
+  
+    //Fix index
+    rowToEdit--;
 
     struct Schedule *current = &room->schedules[rowToEdit];
     char* roomDay = current->day;
@@ -1191,10 +1197,10 @@ void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
     // wattrset(win,A_NORMAL);
     // wrefresh(win);
 
-    printf("%s, %s, %s\n", current->day, current->programCode, current->time);
-    int option=_selectPromt(win, "What do you want to edit: [1] Day, [2] Course Code, [3] Time, [4] All");
+    //printf("%s, %s, %s\n", current->day, current->programCode, current->time);
+    int option=_selectPromt(win, "What do you want to edit: [1] Day, [2] Course Code, [3] Time, [4] All: ");
     printf("%d", option);
-    if(option == -1) return;
+    if(option == -1) return -1;
     if(option < 1) option = 1;
     else if(option > 4) option = 4;
     char* day, *programCode, *time;
@@ -1213,9 +1219,6 @@ void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
             programCode=_strSelectPromt(win, "Enter Course Code: ");
             time=_strSelectPromt(win, "Enter Time: ");
             break;
-        if(day==NULL||programCode==NULL||time==NULL){
-            return;
-        }
     }
 
     strcpy(current->day, day);
@@ -1622,7 +1625,7 @@ void _deleteRoomsched(WINDOW *win,int height,int width,struct Rooms *room) {
     }
 
     // Get user input for which schedule to delete
-    int rowToDelete = _selectPromt(win, "Enter schedule row to delete (0 to cancel): ");
+    int rowToDelete = _selectPromt(win, "Enter schedule row to delete: ");
     if (rowToDelete <= 0 || rowToDelete > room->scheduleCount) {
         return; // Invalid input or cancelled
     }
@@ -1681,6 +1684,8 @@ void _deleteRoom(struct Buildings* currBuilding,int roomToDelete) {
             currRoom = currRoom->next;
         }
     }
+
+    _saveCurrentChanges(currBuilding);
     free(toDelete);
 }
 
@@ -1762,277 +1767,98 @@ int _addRoomsched(WINDOW *win, int height, int width, struct Rooms* room) {
         return -1;
     }
 
-// Get day
-char* day = _strSelectPromt(win, "Enter day: ");
-if (!day) return -1;
+    // Get day
+    char* day = _strSelectPromt(win, "Enter day: ");
+    if (!day) return -1;
 
-int valid_day = 0;
-for (int i = 0; i < MAX_DAYS; i++) {
-    if (strcasecmp(WEEK[i], day) == 0) {
-        valid_day = 1;
-        break;
-    }
-}
-
-if (!valid_day) {
-    const char msg[] = "Invalid day input";
-    wattrset(win, A_REVERSE);
-    mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-    wattrset(win, A_NORMAL);
-    wrefresh(win);
-    napms(2000);
-    free(day);
-    return -1;
-}
-
-// Get course code
-char* progCode = _strSelectPromt(win, "Enter Course Code (e.g., it1a, cs1a): ");
-if (!progCode) {
-    free(day);
-    return -1;
-}
-
-char programCode[15];
-strncpy(programCode, progCode, sizeof(programCode) - 1);
-programCode[sizeof(programCode) - 1] = '\0';
-free(progCode);
-Up2low(programCode);
-
-// Get time
-char* tm = _strSelectPromt(win, "Enter Time (e.g., 7am-9am): ");
-if (!tm) {
-    free(day);
-    return -1;
-}
-
-char time[15];
-strncpy(time, tm, sizeof(time) - 1);
-time[sizeof(time) - 1] = '\0';
-free(tm);
-Up2low(time);
-
-// Validate time format
-char firstHalf[10], secondHalf[10];
-if (sscanf(time, "%9[^-]-%9s", firstHalf, secondHalf) != 2) {
-    const char msg[] = "Invalid time format (use 7am-9am or 7:00am-9:00am)";
-    wattrset(win, A_REVERSE);
-    mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-    wattrset(win, A_NORMAL);
-    wrefresh(win);
-    napms(2000);
-    free(day);
-    return -1;
-}
-
-// Validate time strings contain only digits, optional colon, and am/pm
-if (!is_valid_time_string(firstHalf) || !is_valid_time_string(secondHalf)) {
-    const char msg[] = "Invalid time format (e.g., 7am, 7:30pm)";
-    wattrset(win, A_REVERSE);
-    mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-    wattrset(win, A_NORMAL);
-    wrefresh(win);
-    napms(2000);
-    free(day);
-    return -1;
-}
-
-int firstHalfInt, secondHalfInt;
-int firstHalfMin = 0, secondHalfMin = 0;
-
-// Parse first half
-if (strstr(firstHalf, ":")) {
-    if (sscanf(firstHalf, "%d:%d", &firstHalfInt, &firstHalfMin) != 2) {
-        const char msg[] = "Invalid time format (e.g., 7:30am)";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-} else {
-    if (sscanf(firstHalf, "%d", &firstHalfInt) != 1) {
-        const char msg[] = "Invalid time format (e.g., 7am)";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-}
-
-// Parse second half
-if (strstr(secondHalf, ":")) {
-    if (sscanf(secondHalf, "%d:%d", &secondHalfInt, &secondHalfMin) != 2) {
-        const char msg[] = "Invalid time format (e.g., 7:30am)";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-} else {
-    if (sscanf(secondHalf, "%d", &secondHalfInt) != 1) {
-        const char msg[] = "Invalid time format (e.g., 7am)";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-}
-
-// Get AM/PM indicators
-int isFAM = (firstHalf[strlen(firstHalf) - 2] == 'a') ? 1 : 0;
-int isSAM = (secondHalf[strlen(secondHalf) - 2] == 'a') ? 1 : 0;
-
-// Validate minutes
-if (firstHalfMin < 0 || firstHalfMin > 59 || secondHalfMin < 0 || secondHalfMin > 59) {
-    const char msg[] = "Invalid minutes (must be 00-59)";
-    wattrset(win, A_REVERSE);
-    mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-    wattrset(win, A_NORMAL);
-    wrefresh(win);
-    napms(2000);
-    free(day);
-    return -1;
-}
-
-// Validate AM times (6am-11:59am)
-if (isFAM) {
-    if (firstHalfInt < 6 || firstHalfInt > 11 || (firstHalfInt == 11 && firstHalfMin > 59)) {
-        const char msg[] = "AM classes must be between 6am-11:59am";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-}
-
-// Validate PM times (1pm-9pm)
-if (!isFAM) {
-    if (firstHalfInt < 1 || firstHalfInt > 9 || (firstHalfInt == 9 && firstHalfMin > 0)) {
-        const char msg[] = "PM classes must be between 1pm-9pm";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-}
-
-// Validate end time is after start time
-if (isFAM && isSAM) {
-    if (secondHalfInt < firstHalfInt || 
-        (secondHalfInt == firstHalfInt && secondHalfMin <= firstHalfMin)) {
-        const char msg[] = "End time must be after start time";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-    if (secondHalfInt == 12) {
-        const char msg[] = "Invalid end time (12am is not allowed)";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-} else if (!isFAM && !isSAM) {
-    if (secondHalfInt < firstHalfInt || 
-        (secondHalfInt == firstHalfInt && secondHalfMin <= firstHalfMin)) {
-        const char msg[] = "End time must be after start time";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-    if (secondHalfInt == 12) {
-        const char msg[] = "Invalid end time (12pm is not allowed)";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-} else {
-    // Mixed AM/PM (e.g., 11am-1pm)
-    if (!(isFAM && !isSAM)) {
-        const char msg[] = "Invalid time range (must be within AM or PM)";
-        wattrset(win, A_REVERSE);
-        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
-        wattrset(win, A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        free(day);
-        return -1;
-    }
-}
-
-// Check for schedule conflicts
-for (int index = 0; index < room->scheduleCount; index++) {
-    if (strcmp(room->schedules[index].day, day) == 0) {
-        int schedFirstHalf, schedSecHalf, schedSecHalfMin;
-        char schedFirstHalfStr[10], schedSecondHalfStr[10];
-        char schedFirstHalfPeriod[3], schedSecondHalfPeriod[3];
-        
-        // Parse existing schedule time
-        if (sscanf(room->schedules[index].time, "%9[^-]-%9s", schedFirstHalfStr, schedSecondHalfStr) != 2) {
-            continue; // skip invalid entries
+    int valid_day = 0;
+    for (int i = 0; i < MAX_DAYS; i++) {
+        if (strcasecmp(WEEK[i], day) == 0) {
+            valid_day = 1;
+            break;
         }
-        
-        // Parse first half of existing schedule
-        if (strstr(schedFirstHalfStr, ":")) {
-            sscanf(schedFirstHalfStr, "%d:%d%2s", &schedFirstHalf, &schedSecHalfMin, schedFirstHalfPeriod);
-        } else {
-            sscanf(schedFirstHalfStr, "%d%2s", &schedFirstHalf, schedFirstHalfPeriod);
-            schedSecHalfMin = 0;
+    }
+
+    if (!valid_day) {
+        const char msg[] = "Invalid day input";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+
+    // Get course code
+    char* progCode = _strSelectPromt(win, "Enter Course Code (e.g., it1a, cs1a): ");
+    if (!progCode) {
+        free(day);
+        return -1;
+    }
+
+    char programCode[15];
+    strncpy(programCode, progCode, sizeof(programCode) - 1);
+    programCode[sizeof(programCode) - 1] = '\0';
+    free(progCode);
+    Up2low(programCode);
+
+    // Get time
+    char* tm = _strSelectPromt(win, "Enter Time (e.g., 7am-9am): ");
+    if (!tm) {
+        free(day);
+        return -1;
+    }
+
+    char time[15];
+    strncpy(time, tm, sizeof(time) - 1);
+    time[sizeof(time) - 1] = '\0';
+    free(tm);
+    Up2low(time);
+
+    // Validate time format
+    char firstHalf[10], secondHalf[10];
+    if (sscanf(time, "%9[^-]-%9s", firstHalf, secondHalf) != 2) {
+        const char msg[] = "Invalid time format (use 7am-9am or 7:00am-9:00am)";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+
+    // Validate time strings contain only digits, optional colon, and am/pm
+    if (!is_valid_time_string(firstHalf) || !is_valid_time_string(secondHalf)) {
+        const char msg[] = "Invalid time format (e.g., 7am, 7:30pm)";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+
+    int firstHalfInt, secondHalfInt;
+    int firstHalfMin = 0, secondHalfMin = 0;
+
+    // Parse first half
+    if (strstr(firstHalf, ":")) {
+        if (sscanf(firstHalf, "%d:%d", &firstHalfInt, &firstHalfMin) != 2) {
+            const char msg[] = "Invalid time format (e.g., 7:30am)";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
         }
-        
-        // Parse second half of existing schedule
-        if (strstr(schedSecondHalfStr, ":")) {
-            sscanf(schedSecondHalfStr, "%d:%d%2s", &schedSecHalf, &schedSecHalfMin, schedSecondHalfPeriod);
-        } else {
-            sscanf(schedSecondHalfStr, "%d%2s", &schedSecHalf, schedSecondHalfPeriod);
-            schedSecHalfMin = 0;
-        }
-        
-        // Convert all times to minutes since midnight for easier comparison
-        int newStart = convertToMinutes(firstHalfInt, firstHalfMin, isFAM);
-        int newEnd = convertToMinutes(secondHalfInt, secondHalfMin, isSAM);
-        int existingStart = convertToMinutes(schedFirstHalf, schedSecHalfMin, 
-                                          (schedFirstHalfPeriod[0] == 'a') ? 1 : 0);
-        int existingEnd = convertToMinutes(schedSecHalf, schedSecHalfMin, 
-                                         (schedSecondHalfPeriod[0] == 'a') ? 1 : 0);
-        
-        // Check for overlap
-        if ((newStart >= existingStart && newStart < existingEnd) ||
-            (newEnd > existingStart && newEnd <= existingEnd) ||
-            (newStart <= existingStart && newEnd >= existingEnd)) {
-            const char msg[] = "Schedule conflict with existing booking";
+    } else {
+        if (sscanf(firstHalf, "%d", &firstHalfInt) != 1) {
+            const char msg[] = "Invalid time format (e.g., 7am)";
             wattrset(win, A_REVERSE);
             mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
             wattrset(win, A_NORMAL);
@@ -2042,34 +1868,196 @@ for (int index = 0; index < room->scheduleCount; index++) {
             return -1;
         }
     }
-}
 
-// Store new schedule data
-struct Schedule *sched = &room->schedules[room->scheduleCount++];
-strcpy(sched->day, day);
-strcpy(sched->programCode, programCode);
-strcpy(sched->time, time);
-
-for (int i = 0; i < room->scheduleCount; i++) {
-    printf("%d.  %s, %s at %s\n",
-           i,
-           room->schedules[i].day,
-           room->schedules[i].programCode,
-           room->schedules[i].time);
-}
-
-    struct Buildings* building = bHead;
-    while (building != NULL) {
-        if (building->head == room || building->last == room) {
-            _saveLastChanges(building);
-            _saveCurrentChanges(building);
-            break;
+    // Parse second half
+    if (strstr(secondHalf, ":")) {
+        if (sscanf(secondHalf, "%d:%d", &secondHalfInt, &secondHalfMin) != 2) {
+            const char msg[] = "Invalid time format (e.g., 7:30am)";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
         }
-        building = building->next;
+    }
+    else {
+        if (sscanf(secondHalf, "%d", &secondHalfInt) != 1) {
+            const char msg[] = "Invalid time format (e.g., 7am)";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
+        }
     }
 
-    free(day);
-    return 0;
+    // Get AM/PM indicators
+    int isFAM = (firstHalf[strlen(firstHalf) - 2] == 'a') ? 1 : 0;
+    int isSAM = (secondHalf[strlen(secondHalf) - 2] == 'a') ? 1 : 0;
+
+    // Validate minutes
+    if (firstHalfMin < 0 || firstHalfMin > 59 || secondHalfMin < 0 || secondHalfMin > 59) {
+        const char msg[] = "Invalid minutes (must be 00-59)";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        free(day);
+        return -1;
+    }
+
+    // Validate AM times (6am-11:59am)
+    if (isFAM) {
+        if (firstHalfInt < 6 || firstHalfInt > 11 || (firstHalfInt == 11 && firstHalfMin > 59)) {
+            const char msg[] = "AM classes must be between 6am-11:59am";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
+        }
+    }
+
+    // Validate PM times (1pm-9pm)
+    if (!isFAM) {
+        if (firstHalfInt < 1 || firstHalfInt > 9 || (firstHalfInt == 9 && firstHalfMin > 0)) {
+            const char msg[] = "PM classes must be between 1pm-9pm";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
+        }
+    }
+
+    // Validate end time is after start time
+    if (isFAM && isSAM) {
+        if (secondHalfInt < firstHalfInt || 
+            (secondHalfInt == firstHalfInt && secondHalfMin <= firstHalfMin)) {
+            const char msg[] = "End time must be after start time";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
+        }
+        if (secondHalfInt == 12) {
+            const char msg[] = "Invalid end time (12am is not allowed)";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
+        }
+    }
+    else if (!isFAM && !isSAM) {
+        if (secondHalfInt < firstHalfInt || 
+            (secondHalfInt == firstHalfInt && secondHalfMin <= firstHalfMin)) {
+            const char msg[] = "End time must be after start time";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
+        }
+        if (secondHalfInt == 12) {
+            const char msg[] = "Invalid end time (12pm is not allowed)";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
+        }
+    }
+    else {
+        // Mixed AM/PM (e.g., 11am-1pm)
+        if (!(isFAM && !isSAM)) {
+            const char msg[] = "Invalid time range (must be within AM or PM)";
+            wattrset(win, A_REVERSE);
+            mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+            wattrset(win, A_NORMAL);
+            wrefresh(win);
+            napms(2000);
+            free(day);
+            return -1;
+        }
+    }
+
+    // Check for schedule conflicts
+    for (int index = 0; index < room->scheduleCount; index++) {
+        if (strcmp(room->schedules[index].day, day) == 0) {
+            int schedFirstHalf, schedSecHalf, schedSecHalfMin;
+            char schedFirstHalfStr[10], schedSecondHalfStr[10];
+            char schedFirstHalfPeriod[3], schedSecondHalfPeriod[3];
+
+            // Parse existing schedule time
+            if (sscanf(room->schedules[index].time, "%9[^-]-%9s", schedFirstHalfStr, schedSecondHalfStr) != 2) {
+                continue; // skip invalid entries
+            }
+
+            // Parse first half of existing schedule
+            if (strstr(schedFirstHalfStr, ":")) {
+                sscanf(schedFirstHalfStr, "%d:%d%2s", &schedFirstHalf, &schedSecHalfMin, schedFirstHalfPeriod);
+            } else {
+                sscanf(schedFirstHalfStr, "%d%2s", &schedFirstHalf, schedFirstHalfPeriod);
+                schedSecHalfMin = 0;
+            }
+
+            // Parse second half of existing schedule
+            if (strstr(schedSecondHalfStr, ":")) {
+                sscanf(schedSecondHalfStr, "%d:%d%2s", &schedSecHalf, &schedSecHalfMin, schedSecondHalfPeriod);
+            } else {
+                sscanf(schedSecondHalfStr, "%d%2s", &schedSecHalf, schedSecondHalfPeriod);
+                schedSecHalfMin = 0;
+            }
+
+            // Convert all times to minutes since midnight for easier comparison
+            int newStart = convertToMinutes(firstHalfInt, firstHalfMin, isFAM);
+            int newEnd = convertToMinutes(secondHalfInt, secondHalfMin, isSAM);
+            int existingStart = convertToMinutes(schedFirstHalf, schedSecHalfMin, 
+                                              (schedFirstHalfPeriod[0] == 'a') ? 1 : 0);
+            int existingEnd = convertToMinutes(schedSecHalf, schedSecHalfMin, 
+                                             (schedSecondHalfPeriod[0] == 'a') ? 1 : 0);
+            
+            // Check for overlap
+            if ((newStart >= existingStart && newStart < existingEnd) ||
+                (newEnd > existingStart && newEnd <= existingEnd) ||
+                (newStart <= existingStart && newEnd >= existingEnd)) {
+                const char msg[] = "Schedule conflict with existing booking";
+                wattrset(win, A_REVERSE);
+                mvwprintw(win, height / 2, (width - strlen(msg)) / 2, "%s", msg);
+                wattrset(win, A_NORMAL);
+                wrefresh(win);
+                napms(2000);
+                free(day);
+                return -1;
+            }
+        }
+    }
+
+    // Store new schedule data
+    struct Schedule *sched = &room->schedules[room->scheduleCount++];
+    strcpy(sched->day, day);
+    strcpy(sched->programCode, programCode);
+    strcpy(sched->time, time);
+
 }
 
 int is_valid_time_string(const char *str) {
