@@ -1009,7 +1009,7 @@ int editBuilding(WINDOW *win,int height,int width,struct Buildings *building) {
 void updateListOfBuildings(struct Buildings* building) {
     int currentBuildingNumber = building->buildingNumber;
     char PATH[100] = "./buildings/current_changes/bld";
-    sprintf(PATH, "%s%d.txt", PATH, currentBuildingNumber);
+    snprintf(PATH,155,"%s%d.txt",PATH,currentBuildingNumber);
 
     FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
     if(outFile == NULL) {
