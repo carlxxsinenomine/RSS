@@ -835,7 +835,7 @@ struct Buildings* _selectBuilding(WINDOW *win,int height,int width,int bNum) {
  */
 void _printSched(int height,int width,struct Buildings *building, struct Rooms* room,char status[]){
     //Window size for schedule
-    int sched_height=height/1.120;
+    int sched_height=height/1.2;
     int sched_width=width-2;
 
     int sched_y=(height-sched_height)/2;
@@ -881,7 +881,7 @@ void _printSched(int height,int width,struct Buildings *building, struct Rooms* 
             int progCode_len=strlen(room->schedules[i].programCode);
             int time_len=strlen(room->schedules[i].time);
             int total_len=day_len+progCode_len+time_len;
-            mvwprintw(sched_win,6+i,(sched_width-strlen(sched_header[0]))/2,"%d.%-23s%-29s%s", i+1,
+            mvwprintw(sched_win,6+i,(sched_width-strlen(sched_header[0]))/2,"%d. %-23s%-29s%s", i+1,
                room->schedules[i].day,
                room->schedules[i].programCode,
                room->schedules[i].time);
