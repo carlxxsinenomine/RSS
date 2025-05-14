@@ -168,7 +168,7 @@ void admin_scr(void){
         "[2] Delete Building",
         "[3] View Building  ",
         "[4] Revert Changes ",
-        "[5] Edit Building  ",
+        //"[5] Edit Building  ",
     };
     int bnt_row_size=sizeof(bldng_nav_text)/sizeof(bldng_nav_text[0]);
 
@@ -275,6 +275,7 @@ void admin_scr(void){
                     _revertChanges(selectedBuilding);
                     flag=0;
                     break;
+                /*
                 case '5':
                     _printBuildings(win, height, window_width, "Admin/Edit Building");
                     buildingChoice = _selectPromt(win, "Input Building to Edit: ");
@@ -288,6 +289,7 @@ void admin_scr(void){
                     _saveCurrentChanges(selectedBuilding);
                     flag=0;
                     break;
+                */
                 case 'x':
                 case 'X':
                     flag=-1;
@@ -901,6 +903,7 @@ void _printSched(int height,int width,struct Buildings *building, struct Rooms* 
     wrefresh(sched_win);
 }
 
+/*
 int editBuilding(WINDOW *win,int height,int width,struct Buildings *building) {
     const char existed[] = "Building Number Already Existed!";
     const char* lines[] = {"Building Number: ", "Max Rooms: "};
@@ -1005,6 +1008,7 @@ int editBuilding(WINDOW *win,int height,int width,struct Buildings *building) {
 
     free(temp);
 }
+*/
 
 void updateListOfBuildings(struct Buildings* building) {
     int currentBuildingNumber = building->buildingNumber;
@@ -1151,6 +1155,10 @@ void _printSched_changes(WINDOW *win,int height,int width,struct Buildings *buil
 void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
     int rowToEdit=_selectPromt(win, "Select Row to Edit: ");
 
+    if(rowToEdit==-1){
+        return;
+    }
+
     struct Schedule *current = &room->schedules[rowToEdit];
     char* roomDay = current->day;
     char* progCode = current->programCode;
@@ -1204,6 +1212,10 @@ void editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
             day=_strSelectPromt(win, "Enter Day: ");
             programCode=_strSelectPromt(win, "Enter Course Code: ");
             time=_strSelectPromt(win, "Enter Time: ");
+            break;
+        case -1:
+            return;
+            break;
     }
 
     strcpy(current->day, day);
