@@ -2046,6 +2046,7 @@ for (int i = 0; i < room->scheduleCount; i++) {
            room->schedules[i].time);
 }
 
+
     struct Buildings* building = bHead;
     while (building != NULL) {
         if (building->head == room || building->last == room) {
