@@ -1401,6 +1401,17 @@ int _addRoom(WINDOW *win, int height, int width, struct Buildings *building) {
         return -1;
     }
 
+    // check if sumobra sa max room ang inputted room no.
+    if(roomNumber%100 > building->maxRooms) {
+        const char exists[] = "Room Number should be less than Max Room capacity";
+        wattrset(win, A_REVERSE);
+        mvwprintw(win, height / 2, (width - strlen(exists)) / 2, "%s", exists);
+        wattrset(win, A_NORMAL);
+        wrefresh(win);
+        napms(2000);
+        return -1;
+    }
+
     // Check if room number already exists
     currentRoom = building->head;
     while (currentRoom != NULL) {
