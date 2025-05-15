@@ -1,0 +1,2 @@
+Building No: 6
+Max Rooms: 18

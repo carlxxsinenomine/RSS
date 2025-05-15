@@ -172,7 +172,8 @@ int main() {
                 case '4':
                     printRooms(selectedBuilding);
                     flag = 1;
-                    continue;
+                    bytes_read = 1;
+                    break;
                 case '5':
                     // printf("\nRevert Changes\n");
                     revertChanges(selectedBuilding);
@@ -808,7 +809,7 @@ void addBuilding() {
     int buildingNumber;
     printf("Enter Building Number: e.g. (1, 2, 3)");
     scanf("%d", &buildingNumber);
-    if(buildingNumber < 1) return; // bawal nega
+    if(buildingNumber < 1) return; //
 
     FILE* listOfBuildingsPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "r");
     if(listOfBuildingsPtr == NULL) {

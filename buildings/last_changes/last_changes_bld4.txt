@@ -11,4 +11,5 @@ Room: 104
 
 Room: 105
 0, cs1a, 7am-9am
+0, bio1a, 9am-12pm
 
