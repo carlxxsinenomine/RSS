@@ -248,7 +248,6 @@ void admin_scr(void){
                     if (!selectedBuilding)
                         break;
                     _deleteBuilding(selectedBuilding, delBldng);
-                    // flag=0;
                     break;
                 case '3':
                     _printBuildings(win, height, window_width, "Admin/View Building");
@@ -268,7 +267,6 @@ void admin_scr(void){
                     if (!selectedBuilding)
                         break;
                     _revertChanges(selectedBuilding);
-                    // flag=0;
                     break;
                 case 'x':
                 case 'X':
