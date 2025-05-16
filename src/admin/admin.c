@@ -1260,7 +1260,7 @@ int _addRoom(WINDOW *win, int height, int width, struct Buildings *building) {
         napms(2000);
         return -1;
     }
-
+    _saveLastChanges(building);
     newRoom->roomNumber = roomNumber;
     newRoom->scheduleCount = 0;
     newRoom->next = NULL;
