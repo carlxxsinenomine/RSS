@@ -31,7 +31,7 @@ struct Buildings {
     struct Rooms* last;
     struct Buildings *prev;
     struct Buildings *next;
-} *bHead=NULL, *bLast=NULL;
+} *bHead=NULL, *bLast=NULL, *temp=NULL;
 
 char* WEEK[MAX_DAYS] = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
@@ -193,7 +193,6 @@ void admin_scr(void){
     int flag=0;
     struct Buildings* selectedBuilding=NULL;
     struct Rooms* selectedRoom=NULL;
-    struct Buildings* temp=NULL;
 
 // Sort each schedules per buildings and rooms
     while(flag!=-1) {
@@ -277,6 +276,7 @@ void admin_scr(void){
                 }
         }
         else if(flag==1){
+            temp = selectedBuilding;
             wclear(win);
             status_bar(win,"Admin/View Building/Rooms");
             wborder(win,'|','|','-','-','+','+','+','+');
@@ -357,21 +357,17 @@ void admin_scr(void){
 
             switch (input) {
                 case '1':
-                    temp = selectedBuilding; // Store the current selectedBuilding
                     _printSched(height, window_width, selectedBuilding, selectedRoom, "Add Sched: ");
                     int addRoomSched = _addRoomSched(win, height, window_width, selectedRoom);
                     if (addRoomSched == -1) {
                         continue;
                     }
-                    _saveLastChanges(temp); // Save the current contents before changes
                     _saveCurrentChanges(selectedBuilding);
                     break;
                 case '2':
                     _printSched(height, window_width, selectedBuilding, selectedRoom, "Add Sched");
-                    temp = selectedBuilding;
                     int isDeleted=_deleteRoomSched(win, height, window_width, selectedRoom);
                     if(!isDeleted) break;
-                    _saveLastChanges(temp);
                     _saveCurrentChanges(selectedBuilding);
                     break;
                 case '3':
@@ -383,10 +379,8 @@ void admin_scr(void){
                     break;
                 case '5':
                     _printSched(height, window_width, selectedBuilding, selectedRoom, "Edit Sched");
-                    temp = selectedBuilding;
                     int isEditted=_editRoomSchedule(win, height, window_width, selectedRoom);
                     if(isEditted==-1) break;
-                    _saveLastChanges(temp);
                     _saveCurrentChanges(selectedBuilding);
                     break;
                 case 'x':
@@ -862,30 +856,7 @@ void _printSched(int height,int width,struct Buildings *building, struct Rooms* 
     wrefresh(sched_win);
 }
 
-void updateListOfBuildings(struct Buildings* building) {
-    int currentBuildingNumber = building->buildingNumber;
-    char PATH[100] = "./buildings/current_changes/bld";
-    snprintf(PATH,155,"%s%d.txt",PATH,currentBuildingNumber);
 
-    FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
-    if(outFile == NULL) {
-        printf("Error reopening file for writing\n");
-        exit(1);
-    }
-
-    struct Buildings* current = bHead;
-    while(current != NULL) {
-        fprintf(outFile, "bld%d.txt\n", current->buildingNumber);
-        current = current->next;
-    }
-
-    fclose(outFile);
-
-    if (remove(PATH) == 0)
-        printf("File deleted suprogCodeessfully.\n");
-    else
-        printf("Unable to delete the file.\n");
-}
 
 /**
  * @date_added: 4/15
@@ -1010,6 +981,7 @@ int _editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
     if(rowToEdit==-1){
         return -1;
     }
+    _saveLastChanges(temp);
   
     //Fix index
     rowToEdit--;
@@ -1041,10 +1013,6 @@ int _editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
 
     mvwprintw(_sub_win,_height/2,(_width-len)/2,"%s %s %s",roomDay, progCode, roomTime);
     wrefresh(_sub_win);
-    // wattrset(win,A_REVERSE);
-    // mvwprintw(win,height/2,(width-len)/2,"%s %s %s",roomDay, progCode, roomTime);
-    // wattrset(win,A_NORMAL);
-    // wrefresh(win);
 
     //printf("%s, %s, %s\n", current->day, current->programCode, current->time);
     int option=_selectPromt(win, "What do you want to edit: [1] Day, [2] Course Code, [3] Time, [4] All: ");
@@ -1167,7 +1135,7 @@ void _revertChanges(struct Buildings *current) {
 
     FILE *revertPtr = fopen(dirChanges, "rt");
     if (!revertPtr) {
-        // Handle error - file doesn't exist or can't be opened
+        //file doesn't exist or can't be opened
         return;
     }
 
@@ -1331,6 +1299,7 @@ int _addRoom(WINDOW *win, int height, int width, struct Buildings *building) {
     _saveCurrentChanges(building);
     return 1; // Changed from -1 to 0 to indicate suprogCodeess
 }
+
 int _addBuiding(WINDOW *win,int height,int width) {
     int buildingNumber=_selectPromt(win,"Input Building Number: ");
 
@@ -1355,32 +1324,6 @@ int _addBuiding(WINDOW *win,int height,int width) {
     if(maxRooms < 1) {
         return -1;
     }
-    
-    FILE* listOfBuildingsPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "r");
-    if(listOfBuildingsPtr == NULL) {
-        const char no_file[]="Error opening listOfBuildings.txt";
-        wattrset(win,A_REVERSE);
-        mvwprintw(win,height/2,(width-strlen(no_file))/2,"%s",no_file);
-        wattrset(win,A_NORMAL);
-        wrefresh(win);
-        napms(2000);
-        return -1;
-    }
-    rewind(listOfBuildingsPtr);
-
-    // Save current contents to changes file
-    FILE *LOBuildingsChanges = fopen("./buildings/last_changes/listOfBuildingsChanges.txt", "wt");
-    if(LOBuildingsChanges == NULL) {
-        printf("Error opening changes file\n");
-        fclose(listOfBuildingsPtr);
-        exit(1);
-    }
-
-    char line[100];
-    while(fgets(line, sizeof(line), listOfBuildingsPtr)) {
-        fprintf(LOBuildingsChanges, "%s", line);
-    }
-    fclose(LOBuildingsChanges);
     
     struct Buildings* newBuilding = (struct Buildings *) malloc(sizeof(struct Buildings));
     if (!newBuilding) {
@@ -1431,12 +1374,18 @@ int _addBuiding(WINDOW *win,int height,int width) {
 
     _saveLastChanges(newBuilding);
 
+    // Save current contents to changes file
+    FILE *LOBuildingsChanges = fopen("./buildings/last_changes/listOfBuildingsChanges.txt", "wt");
+    if(LOBuildingsChanges == NULL) {
+        printf("Error opening changes file\n");
+        exit(1);
+    }
+
     char bldFile[50];
     sprintf(bldFile, "./buildings/current_changes/bld%d.txt", buildingNumber);
     FILE* bldPtr = fopen(bldFile, "w");
     if(!bldPtr) {
         free(newBuilding);
-        fclose(listOfBuildingsPtr);
         const char no_file[] = "Error creating building file";
         wattrset(win,A_REVERSE);
         mvwprintw(win, height/2, (width-strlen(no_file))/2, "%s", no_file);
@@ -1445,6 +1394,7 @@ int _addBuiding(WINDOW *win,int height,int width) {
         napms(2000);
         return -1;
     }
+    
     fprintf(bldPtr, "Building No: %d\n", buildingNumber);
     fprintf(bldPtr, "Max Rooms: %d\n", maxRooms);
     fclose(bldPtr);
@@ -1452,7 +1402,6 @@ int _addBuiding(WINDOW *win,int height,int width) {
     FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
     if(outFile == NULL) {
         printf("Error reopening file for writing\n");
-        fclose(listOfBuildingsPtr);
         exit(1);
     }
 
@@ -1462,11 +1411,18 @@ int _addBuiding(WINDOW *win,int height,int width) {
         current = current->next;
     }
 
+    char line[100];
+    current = bHead;
+    while(current!=NULL) {
+        fprintf(LOBuildingsChanges,"bld%d.txt\n", current->buildingNumber);
+        current=current->next;
+    }
+    fclose(LOBuildingsChanges);
+
     _saveCurrentChanges(newBuilding);
 
     fclose(outFile);
-    fclose(listOfBuildingsPtr);
-    return -1;
+    return 1;
 }
 
 //  show aba
@@ -1487,21 +1443,13 @@ int _deleteRoomSched(WINDOW *win,int height,int width,struct Rooms *room) {
         return 0; // Invalid input or cancelled
     }
 
+    _saveLastChanges(temp); // Save the current contents before changes
+
     // Shift schedules down
     for(int i = rowToDelete-1; i < room->scheduleCount-1; i++) {
         room->schedules[i] = room->schedules[i+1];
     }
     room->scheduleCount--;
-
-    // struct Buildings* building = bHead;
-    // while (building != NULL) {
-    //     if (building->head == room || building->last == room) {
-    //         _saveLastChanges(building);
-    //         _saveCurrentChanges(building);
-    //         break;
-    //     }
-    //     building = building->next;
-    // }
 
     // Show suprogCodeess message
     const char suprogCodeess[] = "Schedule deleted";
@@ -1510,7 +1458,6 @@ int _deleteRoomSched(WINDOW *win,int height,int width,struct Rooms *room) {
     wattrset(win, A_NORMAL);
     wrefresh(win);
     napms(1000);
-
     return 1;
 }
 
@@ -1519,7 +1466,7 @@ void _deleteRoom(struct Buildings* currBuilding,int roomToDelete) {
         return; // No building or no rooms to delete
     }
 
-    _saveLastChanges(currBuilding);
+    _saveLastChanges(temp);
     struct Rooms* currRoom = currBuilding->head;
     struct Rooms* toDelete;
 
@@ -1549,9 +1496,8 @@ void _deleteRoom(struct Buildings* currBuilding,int roomToDelete) {
 }
 
 void _deleteBuilding(struct Buildings* currBuilding, int buildingToDelete) {
-    _saveLastChanges(currBuilding);
     struct Buildings* toDelete = NULL;
-    
+    temp = currBuilding;
     // Find the building to delete
     struct Buildings* current = bHead;
     while(current != NULL) {
@@ -1593,19 +1539,50 @@ void _deleteBuilding(struct Buildings* currBuilding, int buildingToDelete) {
     free(toDelete);
     
     // Update the listOfBuildings.txt file (remove from active list)
-    FILE* listFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
-    if(listFile == NULL) {
-        return;
+    updateListOfBuildings(temp);
+}
+
+void updateListOfBuildings(struct Buildings* building) {
+    int currentBuildingNumber = building->buildingNumber;
+    char PATH[120] = "./buildings/current_changes/bld";
+    snprintf(PATH, sizeof(PATH),"%s%d.txt",PATH,currentBuildingNumber);
+
+    char PATH2[125] = "./buildings/last_changes/last_changes_bld";
+    snprintf(PATH2, sizeof(PATH2), "%s%d.txt", PATH2, currentBuildingNumber);
+
+    FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
+    FILE *outFile2 = fopen("./buildings/last_changes/listOfBuildingsChanges.txt", "w");
+
+    if(outFile == NULL) {
+        printf("Error reopening file for writing\n");
+        exit(1);
     }
-    
-    current = bHead;
+    if(outFile2 == NULL) {
+        printf("Error reopening file for writing\n");
+        exit(1);
+    }
+
+    struct Buildings* current = bHead;
     while(current != NULL) {
-        fprintf(listFile, "bld%d.txt\n", current->buildingNumber);
+        fprintf(outFile, "bld%d.txt\n", current->buildingNumber);
+        fprintf(outFile2, "bld%d.txt\n", current->buildingNumber);
         current = current->next;
     }
 
-    _saveCurrentChanges(currBuilding);
-    fclose(listFile);
+
+
+    fclose(outFile);
+    fclose(outFile2);
+
+    if (remove(PATH) == 0)
+        printf("File deleted suprogCodeessfully.\n");
+    else
+        printf("Unable to delete the file.\n");
+
+    if (remove(PATH2) == 0)
+        printf("File deleted suprogCodeessfully.\n");
+    else
+        printf("Unable to delete the file.\n");
 }
 
 // Transforms Uppercase words to lowercase
@@ -1831,7 +1808,7 @@ int _addRoomSched(WINDOW *win, int height, int width, struct Rooms* room) {
 
             // Parse existing schedule time
             if (sscanf(room->schedules[index].time, "%9[^-]-%9s", schedFirstHalfStr, schedSecondHalfStr) != 2) {
-                continue; // skip invalid entries
+                continue; // skip invalid
             }
 
             // Parse first half of existing schedule
@@ -1850,13 +1827,13 @@ int _addRoomSched(WINDOW *win, int height, int width, struct Rooms* room) {
                 schedSecHalfMin = 0;
             }
 
-            // Convert all times to minutes since midnight for easier comparison
+            // Convert all times to minutes for easy comparison
             int newStart = convertToMinutes(firstHalfInt, firstHalfMin, isFAM);
             int newEnd = convertToMinutes(secondHalfInt, secondHalfMin, isSAM);
             int existingStart = convertToMinutes(schedFirstHalf, schedSecHalfMin, (schedFirstHalfPeriod[0] == 'a') ? 1 : 0);
             int existingEnd = convertToMinutes(schedSecHalf, schedSecHalfMin, (schedSecondHalfPeriod[0] == 'a') ? 1 : 0);
             
-            // Check for overlap
+            // Check for sched overlap
             if ((newStart >= existingStart && newStart < existingEnd) ||
                 (newEnd > existingStart && newEnd <= existingEnd) ||
                 (newStart <= existingStart && newEnd >= existingEnd)) {
@@ -1872,6 +1849,8 @@ int _addRoomSched(WINDOW *win, int height, int width, struct Rooms* room) {
         }
     }
 
+    _saveLastChanges(temp); // Save the current contents before changes
+
     // Store new schedule data
     struct Schedule *sched = &room->schedules[room->scheduleCount++];
     strcpy(sched->day, day);
@@ -1879,7 +1858,6 @@ int _addRoomSched(WINDOW *win, int height, int width, struct Rooms* room) {
     strcpy(sched->time, time);
 
     _sortSchedules(room);
-
 }
 
 int _isValidTimeString(const char *str) {
@@ -1936,7 +1914,7 @@ void _sortSchedules(struct Rooms* room) {
                 }
             }
             
-            // If days are out of order, perform swap
+            // If days are out of order perform swap
             if (dayIndex > dayIndex2) {
                 struct Schedule temp = room->schedules[k];
                 room->schedules[k] = room->schedules[k+1];
