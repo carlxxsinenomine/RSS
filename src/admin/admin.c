@@ -1055,7 +1055,7 @@ int _editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
 void _saveCurrentChanges(struct Buildings *current) {
     FILE* savePTR;
     char dirCurrent[1024] = "./buildings/current_changes/bld";
-    snprintf(dirCurrent,sizeof(dirCurrent), "%s%d.txt", dirCurrent, current->buildingNumber);
+    snprintf(dirCurrent + strlen(dirCurrent), sizeof(dirCurrent) - strlen(dirCurrent), "%s%d.txt", dirCurrent, current->buildingNumber);
 
 
     savePTR = fopen(dirCurrent, "wt");
@@ -1092,7 +1092,7 @@ void _saveLastChanges(struct Buildings *current) {
     int buildingNumber = current->buildingNumber;
     int maxRooms = current->maxRooms;
     char dirChanges[1024] = "./buildings/last_changes/last_changes_bld";
-    snprintf(dirChanges, sizeof(dirChanges), "%s%d.txt", dirChanges, buildingNumber);
+    snprintf(dirChanges + strlen(dirChanges), sizeof(dirChanges) - strlen(dirChanges), "%s%d.txt", dirChanges, buildingNumber);
 
     changesPTR = fopen(dirChanges, "wt");
     if (!changesPTR) {
@@ -1130,7 +1130,7 @@ void _revertChanges(struct Buildings *current) {
     _saveLastChanges(current);
     int buildingNumber = current->buildingNumber;
     char dirChanges[1024] = "./buildings/last_changes/last_changes_bld";
-    snprintf(dirChanges, sizeof(dirChanges), "%s%d.txt", dirChanges, buildingNumber);
+    snprintf(dirChanges + strlen(dirChanges), sizeof(dirChanges) - strlen(dirChanges), "%s%d.txt", dirChanges, buildingNumber);
 
 
     FILE *revertPtr = fopen(dirChanges, "rt");
@@ -1545,10 +1545,10 @@ void _deleteBuilding(struct Buildings* currBuilding, int buildingToDelete) {
 void updateListOfBuildings(struct Buildings* building) {
     int currentBuildingNumber = building->buildingNumber;
     char PATH[1024] = "./buildings/current_changes/bld";
-    snprintf(PATH, sizeof(PATH),"%s%d.txt",PATH,currentBuildingNumber);
+    snprintf(PATH + strlen(PATH), sizeof(PATH) - strlen(PATH),"%s%d.txt",PATH,currentBuildingNumber);
 
     char PATH2[1024] = "./buildings/last_changes/last_changes_bld";
-    snprintf(PATH2, sizeof(PATH2), "%s%d.txt", PATH2, currentBuildingNumber);
+    snprintf(PATH2 + strlen(PATH2), sizeof(PATH2) - strlen(PATH2), "%s%d.txt", PATH2, currentBuildingNumber);
 
     FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
     FILE *outFile2 = fopen("./buildings/last_changes/listOfBuildingsChanges.txt", "w");
