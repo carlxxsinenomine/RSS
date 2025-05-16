@@ -1048,6 +1048,7 @@ int _editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
             break;
     }
     _sortSchedules(room);
+    return 1;
 }
 
 // Save updated version
@@ -1857,6 +1858,7 @@ int _addRoomSched(WINDOW *win, int height, int width, struct Rooms* room) {
     strcpy(sched->time, time);
 
     _sortSchedules(room);
+    return 1;
 }
 
 int _isValidTimeString(const char *str) {
