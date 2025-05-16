@@ -1014,7 +1014,6 @@ int _editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
     mvwprintw(_sub_win,_height/2,(_width-len)/2,"%s %s %s",roomDay, progCode, roomTime);
     wrefresh(_sub_win);
 
-    //printf("%s, %s, %s\n", current->day, current->programCode, current->time);
     int option=_selectPromt(win, "What do you want to edit: [1] Day, [2] Course Code, [3] Time, [4] All: ");
     if(option == -1) return -1;
     if(option < 1) option = 1;
@@ -1054,8 +1053,8 @@ int _editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
 // Save updated version
 void _saveCurrentChanges(struct Buildings *current) {
     FILE* savePTR;
-    char dirCurrent[125] = "./buildings/current_changes/bld";
-    sprintf(dirCurrent, "%s%d.txt", dirCurrent, current->buildingNumber);
+    char dirCurrent[1024] = "./buildings/current_changes/bld";
+    snprintf(dirCurrent,sizeof(dirCurrent), "%s%d.txt", dirCurrent, current->buildingNumber);
 
 
     savePTR = fopen(dirCurrent, "wt");
@@ -1091,8 +1090,8 @@ void _saveLastChanges(struct Buildings *current) {
     FILE* changesPTR;
     int buildingNumber = current->buildingNumber;
     int maxRooms = current->maxRooms;
-    char dirChanges[125] = "./buildings/last_changes/last_changes_bld";
-    sprintf(dirChanges, "%s%d.txt", dirChanges, buildingNumber);
+    char dirChanges[1024] = "./buildings/last_changes/last_changes_bld";
+    snprintf(dirChanges, sizeof(dirChanges), "%s%d.txt", dirChanges, buildingNumber);
 
     changesPTR = fopen(dirChanges, "wt");
     if (!changesPTR) {
@@ -1129,8 +1128,8 @@ void _revertChanges(struct Buildings *current) {
     // Save current state as last changes first (so we can undo the revert if needed)
     _saveLastChanges(current);
     int buildingNumber = current->buildingNumber;
-    char dirChanges[125] = "./buildings/last_changes/last_changes_bld";
-    sprintf(dirChanges, "%s%d.txt", dirChanges, buildingNumber);
+    char dirChanges[1024] = "./buildings/last_changes/last_changes_bld";
+    snprintf(dirChanges, sizeof(dirChanges), "%s%d.txt", dirChanges, buildingNumber);
 
 
     FILE *revertPtr = fopen(dirChanges, "rt");
@@ -1544,10 +1543,10 @@ void _deleteBuilding(struct Buildings* currBuilding, int buildingToDelete) {
 
 void updateListOfBuildings(struct Buildings* building) {
     int currentBuildingNumber = building->buildingNumber;
-    char PATH[120] = "./buildings/current_changes/bld";
+    char PATH[1024] = "./buildings/current_changes/bld";
     snprintf(PATH, sizeof(PATH),"%s%d.txt",PATH,currentBuildingNumber);
 
-    char PATH2[125] = "./buildings/last_changes/last_changes_bld";
+    char PATH2[1024] = "./buildings/last_changes/last_changes_bld";
     snprintf(PATH2, sizeof(PATH2), "%s%d.txt", PATH2, currentBuildingNumber);
 
     FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
