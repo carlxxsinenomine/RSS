@@ -1,4 +1,5 @@
 Building No: 1
-Max Rooms: 19
+Max Rooms: 18
 Room: 101
+0, cs3a, 7am-9am
 

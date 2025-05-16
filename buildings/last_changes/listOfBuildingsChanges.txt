@@ -1,6 +1,0 @@
-bld1.txt
-<<<<<<< HEAD
-bld2.txt
-bld4.txt
-=======
->>>>>>> 81ed2f498be983e94a003ccd22bcb4664134a203
