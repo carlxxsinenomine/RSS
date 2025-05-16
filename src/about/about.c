@@ -54,7 +54,7 @@ void about_scr(void){
         "This program has features such as a user interface, an admin page,",
         "and a user page. The user page allows viewing available room",
         "schedules across different buildings. The admin page allows users",
-        "to add and delete room schedules.",
+        "to add, edit and delete room schedules.",
         "",
         "",
         "",
