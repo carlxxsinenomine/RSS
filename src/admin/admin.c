@@ -361,7 +361,6 @@ void admin_scr(void){
                     _printSched(height, window_width, selectedBuilding, selectedRoom, "Add Sched: ");
                     int addRoomSched = _addRoomSched(win, height, window_width, selectedRoom);
                     if (addRoomSched == -1) {
-                        printf("asdflfj");
                         continue;
                     }
                     _saveCurrentChanges(selectedBuilding);

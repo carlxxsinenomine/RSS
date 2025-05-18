@@ -1,2 +1,6 @@
 Building No: 1
 Max Rooms: 19
+Room: 12
+
+Room: 101
+
