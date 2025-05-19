@@ -1,0 +1,2 @@
+Building No: 2
+Max Rooms: 18

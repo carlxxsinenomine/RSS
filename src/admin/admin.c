@@ -225,7 +225,7 @@ void admin_scr(void){
             if(!bytes_read && input!='1'){
                 const char no_bldng_avail[]="Buildings unavailable, please add buildings first";
                 wattrset(win,A_REVERSE);
-				mvwprintw(win,height/2,(width-strlen(no_bldng_avail))/2,"%-20s",no_bldng_avail);
+				mvwprintw(win,height/2,(window_width-strlen(no_bldng_avail))/2,"%-20s",no_bldng_avail);
                 wattrset(win,A_NORMAL);
 				wrefresh(win);
 				napms(2000);
@@ -1129,9 +1129,8 @@ void _revertChanges(struct Buildings *current) {
     // Save current state as last changes first (so we can undo the revert if needed)
     _saveLastChanges(current);
     int buildingNumber = current->buildingNumber;
-    char dirChanges[1024] = "buildings/last_changes/last_changes_bld";
-    snprintf(dirChanges, sizeof(dirChanges) - strlen(dirChanges), "%s%d.txt", dirChanges, buildingNumber);
-
+    char dirChanges[1024];
+    snprintf(dirChanges, sizeof(dirChanges), "buildings/last_changes/last_changes_bld%d.txt", buildingNumber);
 
     FILE *revertPtr = fopen(dirChanges, "rt");
     if (!revertPtr) {
@@ -1225,7 +1224,7 @@ int _addRoom(WINDOW *win, int height, int width, struct Buildings *building) {
     }
 
     // check if sumobra sa max room ang inputted room no.
-    if(roomNumber > building->maxRooms) {
+    if(roomNumber%100 > building->maxRooms) {
         const char exists[] = "Room Number should be less than Max Room capacity";
         wattrset(win, A_REVERSE);
         mvwprintw(win, height / 2, (width - strlen(exists)) / 2, "%s", exists);
@@ -1545,8 +1544,8 @@ void _deleteBuilding(struct Buildings* currBuilding, int buildingToDelete) {
 
 void updateListOfBuildings(struct Buildings* building) {
     int currentBuildingNumber = building->buildingNumber;
-    char PATH[1024] = "buildings/current_changes/bld";
-    snprintf(PATH, sizeof(PATH) - strlen(PATH),"%s%d.txt",PATH,currentBuildingNumber);
+    char PATH[1024];
+    snprintf(PATH, sizeof(PATH) - strlen(PATH),"buildings/current_changes/bld%d.txt",currentBuildingNumber);
 
     char PATH2[1024] = "buildings/last_changes/last_changes_bld";
     snprintf(PATH2, sizeof(PATH2) - strlen(PATH2), "%s%d.txt", PATH2, currentBuildingNumber);
