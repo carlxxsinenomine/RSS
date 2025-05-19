@@ -87,10 +87,10 @@ void admin_scr(void){
     char line[100];
     char buildingText[100];
 
-    LOBPtr = fopen("./buildings/current_changes/listOfBuildings.txt", "rt");
+    LOBPtr = fopen("buildings/current_changes/listOfBuildings.txt", "rt");
     if (LOBPtr == NULL) {
         FILE *createFile;
-        createFile = fopen("./buildings/current_changes/listOfBuildings.txt", "wt");
+        createFile = fopen("buildings/current_changes/listOfBuildings.txt", "wt");
         fclose(createFile);
         return;
     }
@@ -102,8 +102,7 @@ void admin_scr(void){
 
             // Stores the Building file name
             sscanf(line, "%s", buildingText);
-            // printf("Current Building: %s\n", buildingText);
-            char dirChanges[50] = "./buildings/current_changes/";
+            char dirChanges[50] = "buildings/current_changes/";
             strcat(dirChanges, buildingText);
             CBPtr = fopen(dirChanges, "rt");
             // fgets rineread nya each line of a text, ung max letters na pede nya maread depends on the size of bytes specified
@@ -925,7 +924,7 @@ void _printSchedChanges(WINDOW *win,int height,int width,struct Buildings *build
     char strBuildingNumber[5];
     int buildingNumber = building->buildingNumber;
     sprintf(strBuildingNumber, "%d", buildingNumber); // convert into str
-    char lastChangesDir[125] = "./buildings/last_changes/last_changes_bld";
+    char lastChangesDir[125] = "buildings/last_changes/last_changes_bld";
     strcat(lastChangesDir, strBuildingNumber);
     strcat(lastChangesDir, ".txt");
 
@@ -1055,8 +1054,8 @@ int _editRoomSchedule(WINDOW *win,int height,int width, struct Rooms *room) {
 // Save updated version
 void _saveCurrentChanges(struct Buildings *current) {
     FILE* savePTR;
-    char dirCurrent[1024] = "./buildings/current_changes/bld";
-    snprintf(dirCurrent, sizeof(dirCurrent) - strlen(dirCurrent), "%s%d.txt", dirCurrent, current->buildingNumber);
+    char dirCurrent[1024];
+    snprintf(dirCurrent, sizeof(dirCurrent), "buildings/current_changes/bld%d.txt", current->buildingNumber);
 
 
     savePTR = fopen(dirCurrent, "wt");
@@ -1092,8 +1091,8 @@ void _saveLastChanges(struct Buildings *current) {
     FILE* changesPTR;
     int buildingNumber = current->buildingNumber;
     int maxRooms = current->maxRooms;
-    char dirChanges[1024] = "./buildings/last_changes/last_changes_bld";
-    snprintf(dirChanges, sizeof(dirChanges) - strlen(dirChanges), "%s%d.txt", dirChanges, buildingNumber);
+    char dirChanges[1024];
+    snprintf(dirChanges, sizeof(dirChanges), "buildings/current_changes/bld%d.txt", buildingNumber);
 
     changesPTR = fopen(dirChanges, "wt");
     if (!changesPTR) {
@@ -1130,7 +1129,7 @@ void _revertChanges(struct Buildings *current) {
     // Save current state as last changes first (so we can undo the revert if needed)
     _saveLastChanges(current);
     int buildingNumber = current->buildingNumber;
-    char dirChanges[1024] = "./buildings/last_changes/last_changes_bld";
+    char dirChanges[1024] = "buildings/last_changes/last_changes_bld";
     snprintf(dirChanges, sizeof(dirChanges) - strlen(dirChanges), "%s%d.txt", dirChanges, buildingNumber);
 
 
@@ -1196,6 +1195,7 @@ void _revertChanges(struct Buildings *current) {
 }
 
 int _addRoom(WINDOW *win, int height, int width, struct Buildings *building) {
+    _saveLastChanges(building);
     if (!building) {
         return -1;
     }
@@ -1225,7 +1225,7 @@ int _addRoom(WINDOW *win, int height, int width, struct Buildings *building) {
     }
 
     // check if sumobra sa max room ang inputted room no.
-    if(roomNumber%100 > building->maxRooms) {
+    if(roomNumber > building->maxRooms) {
         const char exists[] = "Room Number should be less than Max Room capacity";
         wattrset(win, A_REVERSE);
         mvwprintw(win, height / 2, (width - strlen(exists)) / 2, "%s", exists);
@@ -1261,7 +1261,7 @@ int _addRoom(WINDOW *win, int height, int width, struct Buildings *building) {
         napms(2000);
         return -1;
     }
-    _saveLastChanges(building);
+
     newRoom->roomNumber = roomNumber;
     newRoom->scheduleCount = 0;
     newRoom->next = NULL;
@@ -1376,14 +1376,14 @@ int _addBuiding(WINDOW *win,int height,int width) {
     _saveLastChanges(newBuilding);
 
     // Save current contents to changes file
-    FILE *LOBuildingsChanges = fopen("./buildings/last_changes/listOfBuildingsChanges.txt", "wt");
+    FILE *LOBuildingsChanges = fopen("buildings/last_changes/listOfBuildingsChanges.txt", "wt");
     if(LOBuildingsChanges == NULL) {
         printf("Error opening changes file\n");
         exit(1);
     }
 
     char bldFile[50];
-    sprintf(bldFile, "./buildings/current_changes/bld%d.txt", buildingNumber);
+    sprintf(bldFile, "buildings/current_changes/bld%d.txt", buildingNumber);
     FILE* bldPtr = fopen(bldFile, "w");
     if(!bldPtr) {
         free(newBuilding);
@@ -1400,7 +1400,7 @@ int _addBuiding(WINDOW *win,int height,int width) {
     fprintf(bldPtr, "Max Rooms: %d\n", maxRooms);
     fclose(bldPtr);
 
-    FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
+    FILE *outFile = fopen("buildings/current_changes/listOfBuildings.txt", "w");
     if(outFile == NULL) {
         printf("Error reopening file for writing\n");
         exit(1);
@@ -1545,14 +1545,14 @@ void _deleteBuilding(struct Buildings* currBuilding, int buildingToDelete) {
 
 void updateListOfBuildings(struct Buildings* building) {
     int currentBuildingNumber = building->buildingNumber;
-    char PATH[1024] = "./buildings/current_changes/bld";
+    char PATH[1024] = "buildings/current_changes/bld";
     snprintf(PATH, sizeof(PATH) - strlen(PATH),"%s%d.txt",PATH,currentBuildingNumber);
 
-    char PATH2[1024] = "./buildings/last_changes/last_changes_bld";
+    char PATH2[1024] = "buildings/last_changes/last_changes_bld";
     snprintf(PATH2, sizeof(PATH2) - strlen(PATH2), "%s%d.txt", PATH2, currentBuildingNumber);
 
-    FILE *outFile = fopen("./buildings/current_changes/listOfBuildings.txt", "w");
-    FILE *outFile2 = fopen("./buildings/last_changes/listOfBuildingsChanges.txt", "w");
+    FILE *outFile = fopen("buildings/current_changes/listOfBuildings.txt", "w");
+    FILE *outFile2 = fopen("buildings/last_changes/listOfBuildingsChanges.txt", "w");
 
     if(outFile == NULL) {
         printf("Error reopening file for writing\n");
